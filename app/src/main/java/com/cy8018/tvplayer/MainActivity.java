@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -40,12 +42,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private static final String TAG = "MainActivity";
 
     // Station list JSON file url
-    public static final String StationListUrl = "http://13.78.120.63/tv/tv_station_list.json";
+    public static final String StationListUrl = "http://13.78.120.63/tv/tv_station_list_ext.json";
 
     // station list
     protected List<Station> mStationList;
 
     private Station mCurrentStation;
+
+    private String mCurrentUrl;
 
     public final MsgHandler mHandler = new MsgHandler(this);
 
@@ -54,6 +58,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     // message to play the radio
     public static final int MSG_PLAY = 1;
+
+    TextView textCurrentStationName, textCurrentStationSource;
 
     SimpleExoPlayer player;
     PlayerView playerView;
@@ -66,6 +72,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         Log.d(TAG, "onCreate: ");
 
         playerView = findViewById(R.id.video_view);
+        textCurrentStationName = findViewById(R.id.textCurrentStationName);
+        textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
+
+        textCurrentStationSource.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchSource();
+            }
+        });
+
         initPlayer();
 
         new Thread(loadListRunnable).start();
@@ -100,7 +116,27 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     }
 
+    protected  void switchSource() {
+        int index = 0;
+        int currentIndex = mCurrentStation.url.lastIndexOf(mCurrentUrl);
+        if (currentIndex >= mCurrentStation.url.size() - 1) {
+            index = 0;
+        }
+        else {
+            index = currentIndex + 1;
+        }
+        play(mCurrentStation, index);
+    }
+
+    protected void play(Station station, int source) {
+        textCurrentStationName.setText(station.name);
+        String sourceInfo = source + 1 + "/"+station.url.size();
+        textCurrentStationSource.setText(sourceInfo);
+        play(station.url.get(source));
+    }
+
     protected void play(String url) {
+        mCurrentUrl = url;
         Uri uri = Uri.parse(url);
         if (player.isPlaying()) {
             player.stop();
@@ -197,7 +233,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             else if (msg.what == MSG_PLAY) {
                 int selectedPosition = (int) msg.obj;
                 mainActivity.mCurrentStation = mainActivity.mStationList.get(selectedPosition);
-                mainActivity.play(mainActivity.mCurrentStation.url);
+                mainActivity.play(mainActivity.mCurrentStation, 0);
             }
         }
     }

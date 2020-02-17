@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private static final String TAG = "MainActivity";
 
     // Station list JSON file url
-    public static final String StationListUrl = "http://13.78.120.63/tv/tv_station_list_ext.json";
+    public static final String StationListUrl = "http://52.155.97.142/tv/tv_station_list.json";
 
     // station list
     protected List<Station> mStationList;
@@ -184,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         public void run() {
             String jsonString = getJsonString(StationListUrl);
 
+            Log.d(TAG,  "JsonString: "+jsonString);
             JSONObject object = JSON.parseObject(jsonString);
             Object objArray = object.get("stations");
             String str = objArray+"";

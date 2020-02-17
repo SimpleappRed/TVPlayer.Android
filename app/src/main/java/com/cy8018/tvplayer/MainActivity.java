@@ -183,8 +183,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         @Override
         public void run() {
             String jsonString = getJsonString(StationListUrl);
-
-            Log.d(TAG,  "JsonString: "+jsonString);
             JSONObject object = JSON.parseObject(jsonString);
             Object objArray = object.get("stations");
             String str = objArray+"";

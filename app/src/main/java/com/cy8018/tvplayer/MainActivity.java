@@ -42,7 +42,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private static final String TAG = "MainActivity";
 
     // Station list JSON file url
-    public static final String StationListUrl = "http://52.155.97.142/tv/tv_station_list.json";
+    public static final String StationListUrl = "https://gitee.com/cy8018/Resources/raw/master/tv/tv_station_list.json";
+    //public static final String StationListUrl = "http://52.155.97.142/tv/tv_station_list.json";
+    //https://dev.azure.com/cy8018/Resources/_apis/sourceProviders/tfsgit/filecontents?repository=Resources&commitOrBranch=master&path=tv/tv_station_list.json&api-version=5.0-preview.1
 
     // station list
     protected List<Station> mStationList;

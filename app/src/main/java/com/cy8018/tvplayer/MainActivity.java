@@ -3,6 +3,7 @@ package com.cy8018.tvplayer;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,7 +19,6 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -56,13 +56,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private Station mCurrentStation;
 
-    private String mCurrentStationName;
-
     private int mCurrentStationIndex;
 
-    private String mCurrentSource;
-
-    private String mCurrentUrl;
+    private int mCurrentSourceIndex;
 
     public final MsgHandler mHandler = new MsgHandler(this);
 
@@ -72,15 +68,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     // message to play the radio
     public static final int MSG_PLAY = 1;
 
-    TextView textCurrentStationName, textCurrentStationSource;
+
 
     private final String STATE_RESUME_WINDOW = "resumeWindow";
     private final String STATE_RESUME_POSITION = "resumePosition";
     private final String STATE_PLAYER_FULLSCREEN = "playerFullscreen";
-    private final String STATE_CURRENT_URL = "currentUrl";
-    private final String STATE_CURRENT_SOURCE = "currentSource";
-    private final String STATE_CURRENT_STATION_INDEX = "currentStationIndex";
-    private final String STATE_CURRENT_STATION_NAME = "currentStationName";
 
     private int mResumeWindow;
     private long mResumePosition;
@@ -93,7 +85,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private ImageView mFullScreenIcon;
     private Dialog mFullScreenDialog;
     private DataSource.Factory dataSourceFactory;
+    private RetainedFragment dataFragment;
 
+    private TextView textCurrentStationName, textCurrentStationSource;
+    private RecyclerView stationListView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         // Produces DataSource instances through which media data is loaded.
         dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
 
+        stationListView = findViewById(R.id.stationRecyclerView);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
         textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
 
@@ -120,20 +116,54 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mResumeWindow = savedInstanceState.getInt(STATE_RESUME_WINDOW);
             mResumePosition = savedInstanceState.getLong(STATE_RESUME_POSITION);
             mExoPlayerFullscreen = savedInstanceState.getBoolean(STATE_PLAYER_FULLSCREEN);
-            mCurrentUrl = savedInstanceState.getString(STATE_CURRENT_URL);
-            mCurrentSource = savedInstanceState.getString(STATE_CURRENT_SOURCE);
-            mCurrentStationIndex = savedInstanceState.getInt(STATE_CURRENT_STATION_INDEX);
-            mCurrentStationName = savedInstanceState.getString(STATE_CURRENT_STATION_NAME);
-
-            textCurrentStationName.setText(mCurrentStationName);
-            textCurrentStationSource.setText(mCurrentSource);
         }
 
-        new Thread(loadListRunnable).start();
+        // find the retained fragment on activity restarts
+        FragmentManager fm = getSupportFragmentManager();
+
+        dataFragment = (RetainedFragment) fm.findFragmentByTag("data");
+
+        // create the fragment and data the first time
+        if (dataFragment == null) {
+            // add the fragment
+            dataFragment = new RetainedFragment();
+            fm.beginTransaction().add(dataFragment,"data").commit();
+        }
+
+        // the data is available in dataFragment.getData()
+        PlayerFragmentData data = dataFragment.getData();
+        if(data != null) {
+            mStationList = data.getStationList();
+            mCurrentSourceIndex = data.getCurrentSourceIndex();
+            mCurrentStationIndex = data.getCurrentStationIndex();
+
+            mCurrentStation = mStationList.get(mCurrentStationIndex);
+
+            textCurrentStationName.setText(mCurrentStation.name);
+            textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
+
+            initStationListView();
+            stationListView.getLayoutManager().smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
+//            stationListView.getAdapter().notifyItemChanged(mCurrentStationIndex);
+//            stationListView.getAdapter().notifyDataSetChanged();
+        }
+
+        if (null == mStationList || mStationList.isEmpty()) {
+            new Thread(loadListRunnable).start();
+        }
     }
 
     @Override
     protected void onDestroy() {
+
+        PlayerFragmentData fragmentData = new PlayerFragmentData();
+        fragmentData.setStationList(mStationList);
+        fragmentData.setCurrentStationIndex(mCurrentStationIndex);
+        fragmentData.setCurrentSourceIndex(mCurrentSourceIndex);
+
+        // store the data in the fragment
+        dataFragment.setData(fragmentData);
+
         releasePlayer();
         super.onDestroy();
     }
@@ -144,11 +174,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         outState.putInt(STATE_RESUME_WINDOW, mResumeWindow);
         outState.putLong(STATE_RESUME_POSITION, mResumePosition);
         outState.putBoolean(STATE_PLAYER_FULLSCREEN, mExoPlayerFullscreen);
-        outState.putString(STATE_CURRENT_URL, mCurrentUrl);
-        outState.putString(STATE_CURRENT_SOURCE, mCurrentSource);
-        outState.putString(STATE_CURRENT_STATION_NAME, mCurrentStationName);
-        outState.putInt(STATE_CURRENT_STATION_INDEX, mCurrentStationIndex);
-
         super.onSaveInstanceState(outState);
     }
 
@@ -166,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
 
     private void openFullscreenDialog() {
+
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         ((ViewGroup) playerView.getParent()).removeView(playerView);
         mFullScreenDialog.addContentView(playerView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -176,6 +202,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
 
     private void closeFullscreenDialog() {
+
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         ((ViewGroup) playerView.getParent()).removeView(playerView);
         ((FrameLayout) findViewById(R.id.main_media_frame)).addView(playerView);
@@ -203,6 +230,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     private void initExoPlayer() {
+
         if (null == player) {
             player = new SimpleExoPlayer.Builder(this).build();
         }
@@ -220,8 +248,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             player.seekTo(mResumeWindow, mResumePosition);
         }
 
-        if (null != mCurrentUrl && !mCurrentUrl.isEmpty()) {
-            mVideoSource = buildMediaSource(Uri.parse(mCurrentUrl));
+        if (null != mCurrentStation) {
+            mVideoSource = buildMediaSource(Uri.parse(mCurrentStation.url.get(mCurrentSourceIndex)));
             Log.i("DEBUG"," mVideoSource: " + mVideoSource);
 
             player.prepare(mVideoSource);
@@ -252,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
 
     private MediaSource buildMediaSource(Uri uri) {
+
         @C.ContentType int type = Util.inferContentType(uri);
         switch (type) {
             case C.TYPE_DASH:
@@ -285,8 +314,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     private void releasePlayer() {
+
         if (player != null) {
-            player.stop();
             player.release();
             player = null;
         }
@@ -299,29 +328,33 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         int index = 0;
-        int currentIndex = mCurrentStation.url.lastIndexOf(mCurrentUrl);
-        if (currentIndex >= mCurrentStation.url.size() - 1) {
+
+        if (mCurrentSourceIndex >= mCurrentStation.url.size() - 1) {
             index = 0;
         }
         else {
-            index = currentIndex + 1;
+            index = mCurrentSourceIndex + 1;
         }
         play(mCurrentStation, index);
     }
 
+    private String getSourceInfo(Station station, int source) {
+
+        return source + 1 + "/" + station.url.size();
+    }
+
     protected void play(Station station, int source) {
 
-        mCurrentStationName = station.name;
-        mCurrentSource = source + 1 + "/" + station.url.size();
         mCurrentStationIndex = mStationList.indexOf(station);
+        mCurrentSourceIndex = source;
 
-        textCurrentStationName.setText(mCurrentStationName);
-        textCurrentStationSource.setText(mCurrentSource);
+        textCurrentStationName.setText(station.name);
+        textCurrentStationSource.setText(getSourceInfo(station, source));
         play(station.url.get(source));
     }
 
     protected void play(String url) {
-        mCurrentUrl = url;
+
         Uri uri = Uri.parse(url);
         if (player.isPlaying()) {
             player.stop();
@@ -333,14 +366,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     private void initStationListView() {
+
         Log.d(TAG, "initStationListView: ");
-        RecyclerView stationListView = findViewById(R.id.stationRecyclerView);
         StationListAdapter adapter= new StationListAdapter(this, mStationList);
         stationListView.setAdapter(adapter);
         stationListView.setLayoutManager(new LinearLayoutManager(this));
     }
 
     Runnable loadListRunnable = new Runnable(){
+
         @Override
         public void run() {
             String jsonString = getJsonString(StationListUrl);
@@ -373,6 +407,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     };
 
     public static class MsgHandler extends Handler {
+
         WeakReference<MainActivity> mMainActivityWeakReference;
 
         MsgHandler(MainActivity mainActivity) {

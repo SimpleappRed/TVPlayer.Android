@@ -37,8 +37,11 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Objects;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -68,8 +71,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     // message to play the radio
     public static final int MSG_PLAY = 1;
 
-
-
     private final String STATE_RESUME_WINDOW = "resumeWindow";
     private final String STATE_RESUME_POSITION = "resumePosition";
     private final String STATE_PLAYER_FULLSCREEN = "playerFullscreen";
@@ -80,8 +81,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private SimpleExoPlayer player;
     private PlayerView playerView;
-    private MediaSource mVideoSource;
-    private FrameLayout mFullScreenButton;
     private ImageView mFullScreenIcon;
     private Dialog mFullScreenDialog;
     private DataSource.Factory dataSourceFactory;
@@ -143,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
 
             initStationListView();
-            stationListView.getLayoutManager().smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
+            Objects.requireNonNull(stationListView.getLayoutManager()).smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
 //            stationListView.getAdapter().notifyItemChanged(mCurrentStationIndex);
 //            stationListView.getAdapter().notifyDataSetChanged();
         }
@@ -216,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         PlayerControlView controlView = playerView.findViewById(R.id.exo_controller);
         mFullScreenIcon = controlView.findViewById(R.id.exo_fullscreen_icon);
-        mFullScreenButton = controlView.findViewById(R.id.exo_fullscreen_button);
+        FrameLayout mFullScreenButton = controlView.findViewById(R.id.exo_fullscreen_button);
         mFullScreenButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -249,7 +248,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         if (null != mCurrentStation) {
-            mVideoSource = buildMediaSource(Uri.parse(mCurrentStation.url.get(mCurrentSourceIndex)));
+            MediaSource mVideoSource = buildMediaSource(Uri.parse(mCurrentStation.url.get(mCurrentSourceIndex)));
             Log.i("DEBUG"," mVideoSource: " + mVideoSource);
 
             player.prepare(mVideoSource);
@@ -328,11 +327,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         int index = 0;
-
-        if (mCurrentSourceIndex >= mCurrentStation.url.size() - 1) {
-            index = 0;
-        }
-        else {
+        if (mCurrentSourceIndex + 1 < mCurrentStation.url.size()) {
             index = mCurrentSourceIndex + 1;
         }
         play(mCurrentStation, index);
@@ -377,7 +372,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         @Override
         public void run() {
-            String jsonString = getJsonString(StationListUrl);
+            String jsonString = getJsonString();
             JSONObject object = JSON.parseObject(jsonString);
             Object objArray = object.get("stations");
             String str = objArray+"";
@@ -390,11 +385,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         @Nullable
-        private String getJsonString(String url) {
+        private String getJsonString() {
             try {
                 OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(url).build();
+                Request request = new Request.Builder().url(MainActivity.StationListUrl).build();
                 Response responses = client.newCall(request).execute();
+                assert responses.body() != null;
                 String jsonData = responses.body().string();
                 Log.d(TAG, "getJsonString: [" + jsonData + "]");
 
@@ -415,7 +411,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         @Override
-        public void handleMessage(Message msg) {
+        public void handleMessage(@NotNull Message msg) {
             super.handleMessage(msg);
 
             Log.d(TAG, "Handler: msg.what = " + msg.what);

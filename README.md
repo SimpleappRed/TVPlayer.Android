@@ -1,7 +1,6 @@
 # Online TV Player for Android
-Based on ExoPlayer. Released APK files are available on [GitHub][1] and [Gitee][2].
+Based on ExoPlayer. APK files are available on [Releases Page][1].
 
 ![avatar](https://raw.githubusercontent.com/cy8018/Resources/master/tv/snapshot/snapshot_android_tv_1.png)
 
-[1]: https://raw.githubusercontent.com/cy8018/Resources/master/tv/release/AndroidTvPlayer.apk "APK on GitHub"
-[2]: https://gitee.com/cy8018/Resources/raw/master/tv/release/AndroidTvPlayer.apk "APK on Gitee"
+[1]: https://github.com/cy8018/TVPlayer.Android/releases "Releases"

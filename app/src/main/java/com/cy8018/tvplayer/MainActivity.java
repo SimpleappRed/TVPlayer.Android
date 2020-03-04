@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
@@ -143,8 +144,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
             initStationListView();
             Objects.requireNonNull(stationListView.getLayoutManager()).smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
-//            stationListView.getAdapter().notifyItemChanged(mCurrentStationIndex);
-//            stationListView.getAdapter().notifyDataSetChanged();
         }
 
         if (null == mStationList || mStationList.isEmpty()) {
@@ -189,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
 
+    @SuppressLint("SourceLockedOrientationActivity")
     private void openFullscreenDialog() {
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
@@ -200,6 +200,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
 
+    @SuppressLint("SourceLockedOrientationActivity")
     private void closeFullscreenDialog() {
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);

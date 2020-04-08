@@ -15,11 +15,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -350,6 +352,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     protected void play(String url) {
+
+        Toast toast= Toast.makeText(getApplicationContext(), "Playing  "+ mCurrentStation.name + "  " + textCurrentStationSource.getText() + "\n" + url, Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.BOTTOM, 0, 180);
+        toast.show();
 
         Uri uri = Uri.parse(url);
         if (player.isPlaying()) {

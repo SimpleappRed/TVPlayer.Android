@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.pm.ActivityInfo;
+import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,7 +29,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
@@ -44,13 +47,16 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class MainActivity extends AppCompatActivity implements Player.EventListener{
+import pl.droidsonroids.gif.GifImageView;
+
+public class MainActivity extends AppCompatActivity implements Player.EventListener, AnalyticsListener {
 
     private static final String TAG = "MainActivity";
 
@@ -74,6 +80,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     // message to play the radio
     public static final int MSG_PLAY = 1;
 
+    // message to get buffering info
+    public static final int MSG_GET_BUFFERING_INFO = 2;
+
     private final String STATE_RESUME_WINDOW = "resumeWindow";
     private final String STATE_RESUME_POSITION = "resumePosition";
     private final String STATE_PLAYER_FULLSCREEN = "playerFullscreen";
@@ -89,8 +98,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
     private RetainedFragment dataFragment;
 
-    private TextView textCurrentStationName, textCurrentStationSource;
+    private TextView textCurrentStationName, textCurrentStationSource, textBufferingInfo;
     private RecyclerView stationListView;
+    protected GifImageView imageLoading;
+
+    private long lastTotalRxBytes = 0;
+
+    private long lastTimeStamp = 0;
+
+    protected boolean isBuffering = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +122,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         stationListView = findViewById(R.id.stationRecyclerView);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
         textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
+        textBufferingInfo = findViewById(R.id.textBufferingInfo);
+        imageLoading = findViewById(R.id.imageLoading);
+
+        imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
+        imageLoading.setVisibility(View.INVISIBLE);
 
         textCurrentStationSource.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -151,6 +172,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (null == mStationList || mStationList.isEmpty()) {
             new Thread(loadListRunnable).start();
         }
+
+        new Thread(networkCheckRunnable).start();
     }
 
     @Override
@@ -177,6 +200,72 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         super.onSaveInstanceState(outState);
     }
 
+    @Override
+    public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+
+        Log.d(TAG, "onPlayerStateChanged: playWhenReady:"+ playWhenReady + " playbackState:" + playbackState);
+        switch (playbackState) {
+            case Player.STATE_BUFFERING:
+                showBufferingInfo();
+                break;
+            case Player.STATE_ENDED:
+                hideBufferingInfo();
+                break;
+            case Player.STATE_READY:
+                hideBufferingInfo();
+                break;
+            case Player.STATE_IDLE:
+            default:
+                hideBufferingInfo();
+                break;
+        }
+    }
+
+    private  void hideBufferingInfo () {
+        imageLoading.setVisibility(View.INVISIBLE);
+        isBuffering = false;
+        textBufferingInfo.setText("");
+    }
+
+    private void showBufferingInfo () {
+        isBuffering = true;
+        imageLoading.setVisibility(View.VISIBLE);
+    }
+
+    private long getNetSpeed() {
+
+        long nowTotalRxBytes = TrafficStats.getUidRxBytes(getApplicationContext().getApplicationInfo().uid) == TrafficStats.UNSUPPORTED ? 0 : (TrafficStats.getTotalRxBytes() / 1024);
+        long nowTimeStamp = System.currentTimeMillis();
+        long calculationTime = (nowTimeStamp - lastTimeStamp);
+        if (calculationTime == 0) {
+            return calculationTime;
+        }
+
+        long speed = ((nowTotalRxBytes - lastTotalRxBytes) * 1000 / calculationTime);
+        lastTimeStamp = nowTimeStamp;
+        lastTotalRxBytes = nowTotalRxBytes;
+        return speed;
+    }
+
+    public String getNetSpeedText(long speed) {
+        String text = "";
+        if (speed >= 0 && speed < 1024) {
+            text = speed + " KB/s";
+        } else if (speed >= 1024 && speed < (1024 * 1024)) {
+            text = speed / 1024 + " KB/s";
+        } else if (speed >= (1024 * 1024) && speed < (1024 * 1024 * 1024)) {
+            text = speed / (1024 * 1024) + " MB/s";
+        }
+        return text;
+    }
+
+    public int getBufferedPercentage() {
+        if (null == player) {
+            return 0;
+        }
+
+        return player.getBufferedPercentage();
+    }
 
     private void initFullscreenDialog() {
 
@@ -242,6 +331,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         player.setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT);
         player.addListener(this);
+
+        player.addAnalyticsListener(this);
 
         boolean haveResumePosition = mResumeWindow != C.INDEX_UNSET;
 
@@ -375,6 +466,32 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         stationListView.setLayoutManager(new LinearLayoutManager(this));
     }
 
+    private void getBufferingInfo() {
+        String netSpeed = getNetSpeedText(getNetSpeed());
+        int percent = getBufferedPercentage();
+
+        String bufferingInfo = "" + percent + "%  " + netSpeed;
+
+        textBufferingInfo.setText(bufferingInfo);
+        Log.i(TAG, bufferingInfo);
+    }
+
+    Runnable networkCheckRunnable = new Runnable() {
+        @Override
+        public void run() {
+            while (true) {
+                if (isBuffering) {
+                    try {
+                        mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    };
+
     Runnable loadListRunnable = new Runnable(){
 
         @Override
@@ -432,6 +549,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 int selectedPosition = (int) msg.obj;
                 mainActivity.mCurrentStation = mainActivity.mStationList.get(selectedPosition);
                 mainActivity.play(mainActivity.mCurrentStation, 0);
+            }
+            else if (msg.what == MSG_GET_BUFFERING_INFO) {
+                mainActivity.getBufferingInfo();
             }
         }
     }

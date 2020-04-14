@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private long getNetSpeed() {
 
-        long nowTotalRxBytes = TrafficStats.getUidRxBytes(getApplicationContext().getApplicationInfo().uid) == TrafficStats.UNSUPPORTED ? 0 : (TrafficStats.getTotalRxBytes() / 1024);
+        long nowTotalRxBytes = TrafficStats.getUidRxBytes(getApplicationContext().getApplicationInfo().uid) == TrafficStats.UNSUPPORTED ? 0 : TrafficStats.getTotalRxBytes();
         long nowTimeStamp = System.currentTimeMillis();
         long calculationTime = (nowTimeStamp - lastTimeStamp);
         if (calculationTime == 0) {
@@ -483,7 +483,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 if (isBuffering) {
                     try {
                         mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
-                        Thread.sleep(500);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

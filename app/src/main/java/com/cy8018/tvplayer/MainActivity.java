@@ -26,6 +26,7 @@ import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -58,8 +59,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private static final String TAG = "MainActivity";
 
-    // Station list JSON file url
-    public static final String StationListUrl = "https://gitee.com/cy8018/Resources/raw/master/tv/tv_station_list.json";
+    // ServerPrefix address
+    public static final String ServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
+    //public static final String ServerPrefix = "https://raw.githubusercontent.com/cy8018/Resources/master/tv/
+
+    // Station list JSON file name
+    public static final String StationListFileName = "tv_station_list_ext.json";
 
     // station list
     protected List<Station> mStationList;
@@ -99,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private TextView textCurrentStationName, textCurrentStationSource, textBufferingInfo;
     private RecyclerView stationListView;
     protected GifImageView imageLoading;
+    protected ImageView imageCurrentStationLogo;
 
     private long lastTotalRxBytes = 0;
 
@@ -119,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         stationListView = findViewById(R.id.stationRecyclerView);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
+        imageCurrentStationLogo = findViewById(R.id.imageCurrentStationLogo);
         textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
         imageLoading = findViewById(R.id.imageLoading);
@@ -159,8 +166,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentStationIndex = data.getCurrentStationIndex();
 
             mCurrentStation = mStationList.get(mCurrentStationIndex);
-
-            textCurrentStationName.setText(mCurrentStation.name);
+            
+            setCurrentPlayInfo(mCurrentStation);
             textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
 
             initStationListView();
@@ -407,6 +414,17 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     }
 
+    protected void setCurrentPlayInfo(@NotNull Station station)
+    {
+        // Load the station logo.
+        Glide.with(this)
+                .asBitmap()
+                .load(ServerPrefix + "logo/" + station.logo)
+                .into(imageCurrentStationLogo);
+
+        textCurrentStationName.setText(station.name);
+    }
+
     protected  void switchSource() {
 
         if (null == mCurrentStation) {
@@ -430,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         mCurrentStationIndex = mStationList.indexOf(station);
         mCurrentSourceIndex = source;
 
-        textCurrentStationName.setText(station.name);
+        setCurrentPlayInfo(station);
         textCurrentStationSource.setText(getSourceInfo(station, source));
         play(station.url.get(source));
     }
@@ -514,7 +532,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         private String getJsonString() {
             try {
                 OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(MainActivity.StationListUrl).build();
+                Request request = new Request.Builder().url(MainActivity.ServerPrefix + MainActivity.StationListFileName).build();
                 Response responses = client.newCall(request).execute();
                 assert responses.body() != null;
                 String jsonData = responses.body().string();

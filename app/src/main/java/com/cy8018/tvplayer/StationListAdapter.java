@@ -10,9 +10,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-
+import com.bumptech.glide.Glide;
 
 import java.util.List;
 
@@ -40,6 +41,12 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
         Log.d(TAG, "onBindViewHolder: called.");
+
+        // Load the station logo.
+        Glide.with(mContext)
+                .asBitmap()
+                .load(MainActivity.ServerPrefix + "logo/" + mStationList.get(position).logo)
+                .into(holder.stationLogo);
 
         // Set the station title
         holder.stationTitle.setText(mStationList.get(position).name);
@@ -83,12 +90,14 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
     class ViewHolder extends RecyclerView.ViewHolder {
 
         TextView stationTitle;
+        ImageView stationLogo;
         RelativeLayout parentLayout;
 
         private ViewHolder (View itemView)
         {
             super(itemView);
             stationTitle = itemView.findViewById(R.id.stationTitle);
+            stationLogo = itemView.findViewById(R.id.logo);
             parentLayout = itemView.findViewById(R.id.parent_layout);
         }
     }

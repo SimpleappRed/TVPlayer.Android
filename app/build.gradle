@@ -53,6 +53,4 @@ dependencies {
 
     // android-gif-drawable (Gif Loader)
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.19'
-
-
 }

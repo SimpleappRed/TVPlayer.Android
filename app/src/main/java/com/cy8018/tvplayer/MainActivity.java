@@ -31,7 +31,6 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
@@ -47,7 +46,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 import okhttp3.OkHttpClient;
@@ -278,7 +276,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         };
     }
 
-
     @SuppressLint("SourceLockedOrientationActivity")
     private void openFullscreenDialog() {
 
@@ -290,7 +287,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         mFullScreenDialog.show();
     }
 
-
     @SuppressLint("SourceLockedOrientationActivity")
     private void closeFullscreenDialog() {
 
@@ -301,7 +297,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         mFullScreenDialog.dismiss();
         mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_expand));
     }
-
 
     private void initFullscreenButton() {
 
@@ -371,7 +366,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     }
 
-
     private MediaSource buildMediaSource(Uri uri) {
 
         @C.ContentType int type = Util.inferContentType(uri);
@@ -388,7 +382,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 throw new IllegalStateException("Unsupported type: " + type);
         }
     }
-
 
     @Override
     protected void onPause() {
@@ -444,9 +437,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void play(String url) {
 
-        Toast toast= Toast.makeText(getApplicationContext(), "Playing  "+ mCurrentStation.name + "  " + textCurrentStationSource.getText() + "\n" + url, Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.BOTTOM, 0, 180);
-        toast.show();
+//        Toast toast= Toast.makeText(getApplicationContext(), "Playing  "+ mCurrentStation.name + "  " + textCurrentStationSource.getText() + "\n" + url, Toast.LENGTH_SHORT);
+//        toast.setGravity(Gravity.BOTTOM, 0, 180);
+//        toast.show();
 
         Uri uri = Uri.parse(url);
         if (player.isPlaying()) {
@@ -461,6 +454,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private void initStationListView() {
 
         Log.d(TAG, "initStationListView: ");
+
+        if (null == mStationList || mStationList.size() < 1) {
+            Toast toast= Toast.makeText(getApplicationContext(), "         Unable to load the station list.\nPlease check your network connection.", Toast.LENGTH_LONG);
+            toast.setGravity(Gravity.CENTER, 0, -300);
+            toast.show();
+        }
+
         StationListAdapter adapter= new StationListAdapter(this, mStationList);
         stationListView.setAdapter(adapter);
         stationListView.setLayoutManager(new LinearLayoutManager(this));
@@ -497,12 +497,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         @Override
         public void run() {
             String jsonString = getJsonString();
-            JSONObject object = JSON.parseObject(jsonString);
-            Object objArray = object.get("stations");
-            String str = objArray+"";
-
-            mStationList = JSON.parseArray(str, Station.class);
-            Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+            if (null != jsonString)
+            {
+                JSONObject object = JSON.parseObject(jsonString);
+                Object objArray = object.get("stations");
+                String str = objArray+"";
+                mStationList = JSON.parseArray(str, Station.class);
+                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+            }
 
             // Send Message to Main thread to load the station list
             mHandler.sendEmptyMessage(MSG_LOAD_LIST);
@@ -521,6 +523,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return jsonData;
             } catch (Exception e) {
                 e.printStackTrace();
+                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
             }
             return null;
         }

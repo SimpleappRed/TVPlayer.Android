@@ -61,7 +61,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     // ServerPrefix address
     public static final String ServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
-    //public static final String ServerPrefix = "https://raw.githubusercontent.com/cy8018/Resources/master/tv/
+    public static final String ServerPrefixAlternative = "https://raw.githubusercontent.com/cy8018/Resources/master/tv/";
+
+    public static String CurrentServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
 
     // Station list JSON file name
     public static final String StationListFileName = "tv_station_list_ext.json";
@@ -166,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentStationIndex = data.getCurrentStationIndex();
 
             mCurrentStation = mStationList.get(mCurrentStationIndex);
-            
+
             setCurrentPlayInfo(mCurrentStation);
             textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
 
@@ -175,7 +177,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         if (null == mStationList || mStationList.isEmpty()) {
-            new Thread(loadListRunnable).start();
+            new LoadListThread(ServerPrefix).start();
+            new LoadListThread(ServerPrefixAlternative).start();
         }
 
         new Thread(networkCheckRunnable).start();
@@ -419,7 +422,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         // Load the station logo.
         Glide.with(this)
                 .asBitmap()
-                .load(ServerPrefix + "logo/" + station.logo)
+                .load(CurrentServerPrefix + "logo/" + station.logo)
                 .into(imageCurrentStationLogo);
 
         textCurrentStationName.setText(station.name);
@@ -510,29 +513,41 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     };
 
-    Runnable loadListRunnable = new Runnable(){
+    public class LoadListThread extends Thread {
+
+        private String serverPrefix;
+
+        LoadListThread(String serverPrefix) {
+            this.serverPrefix = serverPrefix;
+        }
 
         @Override
         public void run() {
-            String jsonString = getJsonString();
-            if (null != jsonString)
+
+            if (serverPrefix == null || serverPrefix.length() < 1) {
+                return;
+            }
+
+            String jsonString = getJsonString(serverPrefix + StationListFileName);
+            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
             {
+                CurrentServerPrefix = serverPrefix;
                 JSONObject object = JSON.parseObject(jsonString);
                 Object objArray = object.get("stations");
                 String str = objArray+"";
                 mStationList = JSON.parseArray(str, Station.class);
                 Log.d(TAG,  mStationList.size() +" stations loaded from server.");
-            }
 
-            // Send Message to Main thread to load the station list
-            mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                // Send Message to Main thread to load the station list
+                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+            }
         }
 
         @Nullable
-        private String getJsonString() {
+        private String getJsonString(String url) {
             try {
                 OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(MainActivity.ServerPrefix + MainActivity.StationListFileName).build();
+                Request request = new Request.Builder().url(url).build();
                 Response responses = client.newCall(request).execute();
                 assert responses.body() != null;
                 String jsonData = responses.body().string();
@@ -545,7 +560,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
             return null;
         }
-    };
+    }
 
     public static class MsgHandler extends Handler {
 

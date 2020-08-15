@@ -143,6 +143,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
         imageLoading.setVisibility(View.INVISIBLE);
 
+        textChannelNameOverlay.setSelected(true);
+
         textCurrentStationSource.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

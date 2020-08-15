@@ -15,10 +15,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -103,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
     private RetainedFragment dataFragment;
 
-    private TextView textCurrentStationName, textCurrentStationSource, textBufferingInfo;
+    private TextView textCurrentStationName, textCurrentStationSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay;
     private RecyclerView stationListView;
     protected GifImageView imageLoading;
     protected ImageView imageCurrentStationLogo;
@@ -120,6 +124,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Log.d(TAG, "onCreate: ");
 
         // Produces DataSource instances through which media data is loaded.
@@ -127,15 +133,24 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         stationListView = findViewById(R.id.stationRecyclerView);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
+        textChannelNameOverlay = findViewById(R.id.channel_name);
+        textSourceInfoOverlay = findViewById(R.id.source_info);
         imageCurrentStationLogo = findViewById(R.id.imageCurrentStationLogo);
         textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
+        textNetSpeed = findViewById(R.id.net_speed);
         imageLoading = findViewById(R.id.imageLoading);
-
         imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
         imageLoading.setVisibility(View.INVISIBLE);
 
         textCurrentStationSource.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchSource();
+            }
+        });
+
+        textSourceInfoOverlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switchSource();
@@ -150,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         // find the retained fragment on activity restarts
         FragmentManager fm = getSupportFragmentManager();
-
         dataFragment = (RetainedFragment) fm.findFragmentByTag("data");
 
         // create the fragment and data the first time
@@ -171,6 +185,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
             setCurrentPlayInfo(mCurrentStation);
             textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
+            textSourceInfoOverlay.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
 
             initStationListView();
             Objects.requireNonNull(stationListView.getLayoutManager()).smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
@@ -180,7 +195,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             new LoadListThread(ServerPrefix).start();
             new LoadListThread(ServerPrefixAlternative).start();
         }
-
         new Thread(networkCheckRunnable).start();
     }
 
@@ -332,6 +346,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         playerView.setPlayer(player);
+
         //playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
 
         player.setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT);
@@ -374,6 +389,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_skrink));
             mFullScreenDialog.show();
         }
+        else
+        {
+            findViewById(R.id.main_media_frame).getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override public void onGlobalLayout() {
+                    View frameView = findViewById(R.id.main_media_frame);
+                    ViewGroup.LayoutParams layout = frameView.getLayoutParams();
+                    layout.height = (int)(frameView.getWidth()*0.5625);
+                    frameView.setLayoutParams(layout);
+                    frameView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
+            });
+        }
     }
 
     private MediaSource buildMediaSource(Uri uri) {
@@ -384,12 +411,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return new DashMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
             case C.TYPE_SS:
                 return new SsMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
-            case C.TYPE_HLS:
-                return new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
-            case C.TYPE_OTHER:
-                return new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
+//            case C.TYPE_HLS:
+//                return new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
+//            case C.TYPE_OTHER:
+//                return new ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
             default:
-                throw new IllegalStateException("Unsupported type: " + type);
+                return new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
         }
     }
 
@@ -426,6 +453,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 .into(imageCurrentStationLogo);
 
         textCurrentStationName.setText(station.name);
+        textChannelNameOverlay.setText(station.name);
     }
 
     protected  void switchSource() {
@@ -453,6 +481,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         setCurrentPlayInfo(station);
         textCurrentStationSource.setText(getSourceInfo(station, source));
+        textSourceInfoOverlay.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
         play(station.url.get(source));
     }
 
@@ -489,25 +518,27 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private void getBufferingInfo() {
         String netSpeed = getNetSpeedText(getNetSpeed());
-        int percent = getBufferedPercentage();
 
-        String bufferingInfo = "" + percent + "%  " + netSpeed;
+        if (isBuffering) {
+            int percent = getBufferedPercentage();
+            String bufferingInfo = "" + percent + "%";
+            textBufferingInfo.setText(bufferingInfo);
+            Log.i(TAG, bufferingInfo);
+        }
 
-        textBufferingInfo.setText(bufferingInfo);
-        Log.i(TAG, bufferingInfo);
+        textNetSpeed.setText(netSpeed);
+        Log.i(TAG, netSpeed);
     }
 
     Runnable networkCheckRunnable = new Runnable() {
         @Override
         public void run() {
             while (true) {
-                if (isBuffering) {
-                    try {
-                        mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                try {
+                    mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }

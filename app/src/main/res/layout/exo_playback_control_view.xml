@@ -20,16 +20,15 @@
             android:id="@+id/net_speed"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:gravity="end"
-            android:padding="5dp"
+            android:layout_gravity="end|center_vertical"
+            android:gravity="end|center_vertical"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="16sp"
             android:shadowColor="#000000"
             android:shadowDx="3"
             android:shadowDy="3"
             android:shadowRadius="3"
-            android:layout_weight="3"
+            android:layout_weight="2"
             />
         <TextView
             android:id="@+id/channel_name"
@@ -44,7 +43,7 @@
             android:shadowDx="3"
             android:shadowDy="3"
             android:shadowRadius="3"
-            android:layout_weight="5.5"
+            android:layout_weight="6"
             android:ellipsize="marquee"
             android:marqueeRepeatLimit="marquee_forever"
             android:singleLine="true"
@@ -56,12 +55,12 @@
             android:layout_gravity="center_vertical|end"
             android:gravity="center_vertical|end"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="19sp"
             android:shadowColor="#000000"
             android:shadowDx="3"
             android:shadowDy="3"
             android:shadowRadius="3"
-            android:layout_weight="1.5"
+            android:layout_weight="1.6"
             />
 
         <FrameLayout
@@ -69,7 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_gravity="center_vertical|end"
-            android:layout_weight="1">
+            android:layout_weight="0.4">
 
             <ImageView
                 android:id="@+id/exo_fullscreen_icon"

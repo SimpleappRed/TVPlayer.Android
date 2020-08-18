@@ -519,17 +519,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     private void getBufferingInfo() {
-        String netSpeed = getNetSpeedText(getNetSpeed());
-
         if (isBuffering) {
             int percent = getBufferedPercentage();
             String bufferingInfo = "" + percent + "%";
             textBufferingInfo.setText(bufferingInfo);
             Log.i(TAG, bufferingInfo);
         }
-
-        textNetSpeed.setText(netSpeed);
-        Log.i(TAG, netSpeed);
+        if (mCurrentStation != null && mCurrentStation.name != null && mCurrentStation.name.length() > 0)
+        {
+            String netSpeed = getNetSpeedText(getNetSpeed());
+            textNetSpeed.setText(netSpeed);
+            Log.i(TAG, netSpeed);
+        }
     }
 
     Runnable networkCheckRunnable = new Runnable() {

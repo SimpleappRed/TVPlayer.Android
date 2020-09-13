@@ -42,10 +42,16 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
         Log.d(TAG, "onBindViewHolder: called.");
 
+        String logoUrl = mStationList.get(position).logo;
+        if (logoUrl != null && !logoUrl.toLowerCase().contains("http"))
+        {
+            logoUrl = MainActivity.CurrentServerPrefix + "logo/" + logoUrl;
+        }
+
         // Load the station logo.
         Glide.with(mContext)
                 .asBitmap()
-                .load(MainActivity.CurrentServerPrefix + "logo/" + mStationList.get(position).logo)
+                .load(logoUrl)
                 .into(holder.stationLogo);
 
         // Set the station title

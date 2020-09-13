@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TV Player</string>
+    <string name="station_list_file_name">tv_station_list.json</string>
 </resources>

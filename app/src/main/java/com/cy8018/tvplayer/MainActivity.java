@@ -44,6 +44,8 @@ import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
 
@@ -70,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     public static String CurrentServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
 
     // Station list JSON file name
-    public static final String StationListFileName = "tv_station_list_ext.json";
+    //public static final String StationListFileName = "tv_station_list.json";
 
     // station list
     protected List<Station> mStationList;
@@ -129,7 +131,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         Log.d(TAG, "onCreate: ");
 
         // Produces DataSource instances through which media data is loaded.
-        dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
+//        dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
+
+        dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getString(R.string.app_name)),
+                null,
+                DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS,
+                true);
 
         stationListView = findViewById(R.id.stationRecyclerView);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
@@ -562,7 +570,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return;
             }
 
-            String jsonString = getJsonString(serverPrefix + StationListFileName);
+            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
             if (null != jsonString && (mStationList == null || mStationList.size() == 0))
             {
                 CurrentServerPrefix = serverPrefix;

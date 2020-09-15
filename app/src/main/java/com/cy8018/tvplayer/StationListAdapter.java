@@ -43,16 +43,30 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
         Log.d(TAG, "onBindViewHolder: called.");
 
         String logoUrl = mStationList.get(position).logo;
-        if (logoUrl != null && !logoUrl.toLowerCase().contains("http"))
-        {
-            logoUrl = MainActivity.CurrentServerPrefix + "logo/" + logoUrl;
-        }
 
-        // Load the station logo.
-        Glide.with(mContext)
-                .asBitmap()
-                .load(logoUrl)
-                .into(holder.stationLogo);
+
+        if (logoUrl == null || logoUrl.isEmpty())
+        {
+            holder.stationLogo.setImageResource(mContext.getResources().getIdentifier("@drawable/tv", null, mContext.getPackageName()));
+
+//            // Load the station logo.
+//            Glide.with(mContext)
+//                    .asBitmap()
+//                    .load("https://github.com/cy8018/TVPlayer.Android/raw/master/app/src/main/res/drawable/tv.png")
+//                    .into(holder.stationLogo);
+        }
+        else
+        {
+            if (!logoUrl.toLowerCase().contains("http"))
+            {
+                logoUrl = MainActivity.CurrentServerPrefix + "logo/" + logoUrl;
+            }
+            // Load the station logo.
+            Glide.with(mContext)
+                    .asBitmap()
+                    .load(logoUrl)
+                    .into(holder.stationLogo);
+        }
 
         // Set the station title
         holder.stationTitle.setText(mStationList.get(position).name);

@@ -51,7 +51,9 @@ import com.google.android.exoplayer2.util.Util;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -70,9 +72,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     public static final String ServerPrefixAlternative = "https://raw.githubusercontent.com/cy8018/Resources/master/tv/";
 
     public static String CurrentServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
-
-    // Station list JSON file name
-    //public static final String StationListFileName = "tv_station_list.json";
 
     // station list
     protected List<Station> mStationList;
@@ -202,6 +201,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         if (null == mStationList || mStationList.isEmpty()) {
+            //new LoadM3UListThread(ServerPrefix).start();
             new LoadListThread(ServerPrefix).start();
             new LoadListThread(ServerPrefixAlternative).start();
         }
@@ -456,11 +456,23 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void setCurrentPlayInfo(@NotNull Station station)
     {
-        // Load the station logo.
-        Glide.with(this)
-                .asBitmap()
-                .load(CurrentServerPrefix + "logo/" + station.logo)
-                .into(imageCurrentStationLogo);
+        String logoUrl = station.logo;
+        if (logoUrl == null || logoUrl.isEmpty())
+        {
+            imageCurrentStationLogo.setImageResource(getResources().getIdentifier("@drawable/tv", null, getPackageName()));
+        }
+        else
+        {
+            if (!logoUrl.toLowerCase().contains("http"))
+            {
+                logoUrl = CurrentServerPrefix + "logo/" + logoUrl;
+            }
+            // Load the station logo.
+            Glide.with(this)
+                    .asBitmap()
+                    .load(logoUrl)
+                    .into(imageCurrentStationLogo);
+        }
 
         textCurrentStationName.setText(station.name);
         textChannelNameOverlay.setText(station.name);
@@ -496,11 +508,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     protected void play(String url) {
-
-//        Toast toast= Toast.makeText(getApplicationContext(), "Playing  "+ mCurrentStation.name + "  " + textCurrentStationSource.getText() + "\n" + url, Toast.LENGTH_SHORT);
-//        toast.setGravity(Gravity.BOTTOM, 0, 180);
-//        toast.show();
-
         Uri uri = Uri.parse(url);
         if (player.isPlaying()) {
             player.stop();
@@ -596,6 +603,86 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 Log.d(TAG, "getJsonString: [" + jsonData + "]");
 
                 return jsonData;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    public class LoadM3UListThread extends Thread {
+
+        private String serverPrefix;
+
+        LoadM3UListThread(String serverPrefix) {
+            this.serverPrefix = serverPrefix;
+        }
+
+        @Override
+        public void run() {
+
+            if (serverPrefix == null || serverPrefix.length() < 1) {
+                return;
+            }
+
+            String m3UString = getM3UString("https://iptv-org.github.io/iptv/countries/us.m3u");
+            if (null != m3UString && (mStationList == null || mStationList.size() == 0))
+            {
+                CurrentServerPrefix = serverPrefix;
+
+                try {
+                    List<SimpleM3UParser.M3U_Entry> m3UStationList = new SimpleM3UParser().parseM3UString(m3UString);
+                    List stationList = new ArrayList<Station>();
+                    for (SimpleM3UParser.M3U_Entry stationM3U : m3UStationList) {
+
+                        List<String> urlList = new ArrayList<String>();
+                        String logo = "";
+                        for (Object s : stationList) {
+                            if (((Station)s).name.equals(stationM3U.getName())) {
+                                urlList = ((Station)s).url;
+                                if (((Station)s).logo.contains("http")) {
+                                    logo = ((Station)s).logo;
+                                }
+                                stationList.remove(s);
+                                break;
+                            }
+                        }
+                        Station station = new Station();
+                        station.name = stationM3U.getName();
+                        if (logo.contains("http")) {
+                            station.logo = logo;
+                        }
+                        else {
+                            station.logo = stationM3U.getTvgLogo();
+                        }
+                        urlList.add(stationM3U.getUrl());
+                        station.url = urlList;
+                        stationList.add(station);
+                    }
+
+                    mStationList = stationList;
+
+                    // Send Message to Main thread to load the station list
+                    mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                    Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Nullable
+        private String getM3UString(String url) {
+            try {
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(url).build();
+                Response responses = client.newCall(request).execute();
+                assert responses.body() != null;
+                String data = responses.body().string();
+                Log.d(TAG, "getM3UString: [" + data + "]");
+
+                return data;
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e(TAG, "Exception when loading station list: " + e.getMessage());

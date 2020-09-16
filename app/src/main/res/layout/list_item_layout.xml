@@ -26,6 +26,12 @@
             android:gravity="center"
             android:layout_gravity="center"
             android:textSize="20sp"
+            android:shadowDx="3"
+            android:shadowDy="3"
+            android:shadowRadius="5"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
             />
     </LinearLayout>
 </RelativeLayout>

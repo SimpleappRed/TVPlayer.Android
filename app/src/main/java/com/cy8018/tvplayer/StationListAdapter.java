@@ -48,12 +48,6 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
         if (logoUrl == null || logoUrl.isEmpty())
         {
             holder.stationLogo.setImageResource(mContext.getResources().getIdentifier("@drawable/tv", null, mContext.getPackageName()));
-
-//            // Load the station logo.
-//            Glide.with(mContext)
-//                    .asBitmap()
-//                    .load("https://github.com/cy8018/TVPlayer.Android/raw/master/app/src/main/res/drawable/tv.png")
-//                    .into(holder.stationLogo);
         }
         else
         {
@@ -64,6 +58,7 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
             // Load the station logo.
             Glide.with(mContext)
                     .asBitmap()
+                    .timeout(10000)
                     .load(logoUrl)
                     .into(holder.stationLogo);
         }

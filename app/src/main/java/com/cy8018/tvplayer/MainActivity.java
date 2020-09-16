@@ -201,9 +201,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         if (null == mStationList || mStationList.isEmpty()) {
-            //new LoadM3UListThread(ServerPrefix).start();
-            new LoadListThread(ServerPrefix).start();
-            new LoadListThread(ServerPrefixAlternative).start();
+            new LoadM3UListThread(ServerPrefix).start();
+//            new LoadListThread(ServerPrefix).start();
+//            new LoadListThread(ServerPrefixAlternative).start();
         }
         new Thread(networkCheckRunnable).start();
     }
@@ -470,12 +470,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             // Load the station logo.
             Glide.with(this)
                     .asBitmap()
+                    .timeout(10000)
                     .load(logoUrl)
                     .into(imageCurrentStationLogo);
         }
 
-        textCurrentStationName.setText(station.name);
         textChannelNameOverlay.setText(station.name);
+        textCurrentStationName.setText(station.name);
+        textCurrentStationName.setSelected(true);
     }
 
     protected  void switchSource() {

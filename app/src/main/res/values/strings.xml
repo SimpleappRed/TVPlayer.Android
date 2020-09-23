@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">TV Player</string>
     <string name="station_list_file_name">tv_station_list.json</string>
+    <string name="iptv_station_list">https://raw.githubusercontent.com/cy8018/Resources/master/tv/channels/us.m3u</string>
+    <string name="search_hint">Type here…</string>
+    <string name="search_action"></string>
 </resources>

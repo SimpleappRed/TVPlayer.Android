@@ -1,4 +1,4 @@
-package com.cy8018.tvplayer;
+package com.cy8018.tvplayer.util;
 
 import android.icu.lang.UProperty;
 

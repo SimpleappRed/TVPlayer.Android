@@ -1,7 +1,8 @@
-package com.cy8018.tvplayer;
+package com.cy8018.tvplayer.ui;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -15,35 +16,39 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.bumptech.glide.Glide;
+import com.cy8018.tvplayer.R;
+import com.cy8018.tvplayer.model.IptvStation;
+import com.cy8018.tvplayer.util.SimpleM3UParser;
+import com.cy8018.tvplayer.model.Station;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
@@ -75,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     // station list
     protected List<Station> mStationList;
+
+    private StationListAdapter adapter;
 
     private Station mCurrentStation;
 
@@ -108,10 +115,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
     private RetainedFragment dataFragment;
 
-    private TextView textCurrentStationName, textCurrentStationSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay;
+    private TextView appTitle, textCurrentStationName, textCurrentStationSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay;
     private RecyclerView stationListView;
     protected GifImageView imageLoading;
-    protected ImageView imageCurrentStationLogo;
+    protected ImageView imageCurrentStationLogo, appLogo;
+
+    private SearchView searchView;
 
     private long lastTotalRxBytes = 0;
 
@@ -125,7 +134,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Log.d(TAG, "onCreate: ");
 
@@ -138,7 +146,19 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS,
                 true);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        // toolbar fancy stuff
+        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        getSupportActionBar().setTitle(R.string.search_action);
+
+//        searchView.findViewById(R.id.action_search);
+//        searchView.setIconified(false);
+
+
         stationListView = findViewById(R.id.stationRecyclerView);
+        appTitle = findViewById(R.id.app_title);
         textCurrentStationName = findViewById(R.id.textCurrentStationName);
         textChannelNameOverlay = findViewById(R.id.channel_name);
         textSourceInfoOverlay = findViewById(R.id.source_info);
@@ -146,9 +166,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
         textNetSpeed = findViewById(R.id.net_speed);
+        appLogo = findViewById(R.id.app_logo);
         imageLoading = findViewById(R.id.imageLoading);
         imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
         imageLoading.setVisibility(View.INVISIBLE);
+
 
         textChannelNameOverlay.setSelected(true);
 
@@ -204,8 +226,53 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             new LoadM3UListThread(ServerPrefix).start();
 //            new LoadListThread(ServerPrefix).start();
 //            new LoadListThread(ServerPrefixAlternative).start();
+//            new LoadIptvListThread().start();
         }
         new Thread(networkCheckRunnable).start();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+
+        searchView.setOnQueryTextListener(
+                new SearchView.OnQueryTextListener() {
+                  @Override
+                  public boolean onQueryTextSubmit(String query) {
+                      return false;
+                  }
+
+                  @Override
+                  public boolean onQueryTextChange(String newText) {
+                      adapter.getFilter().filter(newText);
+                      return false;
+                  }
+              }
+        );
+
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //search is expanded
+                appLogo.setVisibility(View.INVISIBLE);
+                appTitle.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                // searchview closed
+                appLogo.setVisibility(View.VISIBLE);
+                appTitle.setVisibility(View.VISIBLE);
+                return false;
+            }
+        });
+
+        return true;
     }
 
     @Override
@@ -530,7 +597,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             toast.show();
         }
 
-        StationListAdapter adapter= new StationListAdapter(this, mStationList);
+        adapter= new StationListAdapter(this, mStationList);
         stationListView.setAdapter(adapter);
         stationListView.setLayoutManager(new LinearLayoutManager(this));
     }
@@ -613,6 +680,65 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     }
 
+    public class LoadIptvListThread extends Thread {
+
+        @Override
+        public void run() {
+
+            String jsonString = getJsonString(getResources().getString(R.string.iptv_station_list));
+            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
+            {
+                List<IptvStation> iptvStationList = JSON.parseArray(jsonString, IptvStation.class);
+                Log.d(TAG,  iptvStationList.size() +" stations loaded from server.");
+
+                List stationList = new ArrayList<Station>();
+                for (IptvStation iptvStation: iptvStationList) {
+
+                    List<String> urlList = new ArrayList<String>();
+                    String logo = "";
+                    for (Object s : stationList) {
+                        if (((Station)s).name.equals(iptvStation.name)
+                            ||((Station)s).name.equals(iptvStation.tvg.name)
+                        ) {
+                            urlList = ((Station)s).url;
+                            stationList.remove(s);
+                            break;
+                        }
+                    }
+                    Station station = new Station();
+                    station.name = (iptvStation.tvg.name!=null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
+                    station.logo = iptvStation.logo;
+                    urlList.add(iptvStation.url);
+                    station.url = urlList;
+                    stationList.add(station);
+                }
+
+                mStationList = stationList;
+
+                // Send Message to Main thread to load the station list
+                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+            }
+        }
+
+        @Nullable
+        private String getJsonString(String url) {
+            try {
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(url).build();
+                Response responses = client.newCall(request).execute();
+                assert responses.body() != null;
+                String jsonData = responses.body().string();
+                Log.d(TAG, "getJsonString: [" + jsonData + "]");
+
+                return jsonData;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
+            }
+            return null;
+        }
+    }
+
     public class LoadM3UListThread extends Thread {
 
         private String serverPrefix;
@@ -628,25 +754,35 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return;
             }
 
-            String m3UString = getM3UString("https://iptv-org.github.io/iptv/countries/us.m3u");
-            if (null != m3UString && (mStationList == null || mStationList.size() == 0))
+            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
+            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
+            {
+                CurrentServerPrefix = serverPrefix;
+                JSONObject object = JSON.parseObject(jsonString);
+                Object objArray = object.get("stations");
+                String str = objArray+"";
+                mStationList = JSON.parseArray(str, Station.class);
+                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+            }
+
+            String m3UString = getM3UString(getResources().getString(R.string.iptv_station_list));
+            if (null != m3UString && mStationList != null )
             {
                 CurrentServerPrefix = serverPrefix;
 
                 try {
                     List<SimpleM3UParser.M3U_Entry> m3UStationList = new SimpleM3UParser().parseM3UString(m3UString);
-                    List stationList = new ArrayList<Station>();
                     for (SimpleM3UParser.M3U_Entry stationM3U : m3UStationList) {
 
                         List<String> urlList = new ArrayList<String>();
                         String logo = "";
-                        for (Object s : stationList) {
+                        for (Object s : mStationList) {
                             if (((Station)s).name.equals(stationM3U.getName())) {
                                 urlList = ((Station)s).url;
                                 if (((Station)s).logo.contains("http")) {
                                     logo = ((Station)s).logo;
                                 }
-                                stationList.remove(s);
+                                mStationList.remove(s);
                                 break;
                             }
                         }
@@ -660,18 +796,19 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                         }
                         urlList.add(stationM3U.getUrl());
                         station.url = urlList;
-                        stationList.add(station);
+                        mStationList.add(station);
                     }
-
-                    mStationList = stationList;
-
-                    // Send Message to Main thread to load the station list
-                    mHandler.sendEmptyMessage(MSG_LOAD_LIST);
-                    Log.d(TAG,  mStationList.size() +" stations loaded from server.");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
+            if (mStationList.size() > 0)
+            {
+                // Send Message to Main thread to load the station list
+                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+            }
+
+            Log.d(TAG,  mStationList.size() +" stations loaded from server.");
         }
 
         @Nullable
@@ -685,6 +822,24 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 Log.d(TAG, "getM3UString: [" + data + "]");
 
                 return data;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
+            }
+            return null;
+        }
+
+        @Nullable
+        private String getJsonString(String url) {
+            try {
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(url).build();
+                Response responses = client.newCall(request).execute();
+                assert responses.body() != null;
+                String jsonData = responses.body().string();
+                Log.d(TAG, "getJsonString: [" + jsonData + "]");
+
+                return jsonData;
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e(TAG, "Exception when loading station list: " + e.getMessage());

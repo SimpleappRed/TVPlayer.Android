@@ -1,4 +1,6 @@
-package com.cy8018.tvplayer;
+package com.cy8018.tvplayer.ui;
+
+import com.cy8018.tvplayer.model.Station;
 
 import java.util.List;
 

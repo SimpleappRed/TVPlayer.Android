@@ -223,10 +223,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         if (null == mStationList || mStationList.isEmpty()) {
-            new LoadM3UListThread(ServerPrefix).start();
+//            new LoadM3UListThread(ServerPrefix).start();
 //            new LoadListThread(ServerPrefix).start();
 //            new LoadListThread(ServerPrefixAlternative).start();
-//            new LoadIptvListThread().start();
+            new LoadIptvListThread().start();
         }
         new Thread(networkCheckRunnable).start();
     }
@@ -706,7 +706,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                         }
                     }
                     Station station = new Station();
-                    station.name = (iptvStation.tvg.name!=null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
+                    station.name = (iptvStation.tvg.name != null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
                     station.logo = iptvStation.logo;
                     urlList.add(iptvStation.url);
                     station.url = urlList;
@@ -753,31 +753,30 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             if (serverPrefix == null || serverPrefix.length() < 1) {
                 return;
             }
-
-            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
-            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
-            {
-                CurrentServerPrefix = serverPrefix;
-                JSONObject object = JSON.parseObject(jsonString);
-                Object objArray = object.get("stations");
-                String str = objArray+"";
-                mStationList = JSON.parseArray(str, Station.class);
-                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
-            }
+//
+//            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
+//            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
+//            {
+//                CurrentServerPrefix = serverPrefix;
+//                JSONObject object = JSON.parseObject(jsonString);
+//                Object objArray = object.get("stations");
+//                String str = objArray+"";
+//                mStationList = JSON.parseArray(str, Station.class);
+//                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+//            }
 
             String m3UString = getM3UString(getResources().getString(R.string.iptv_station_list));
             if (null != m3UString && mStationList != null )
             {
-                CurrentServerPrefix = serverPrefix;
-
                 try {
+                    List stationList = new ArrayList<Station>();
                     List<SimpleM3UParser.M3U_Entry> m3UStationList = new SimpleM3UParser().parseM3UString(m3UString);
                     for (SimpleM3UParser.M3U_Entry stationM3U : m3UStationList) {
 
                         List<String> urlList = new ArrayList<String>();
                         String logo = "";
                         for (Object s : mStationList) {
-                            if (((Station)s).name.equals(stationM3U.getName())) {
+                            if (s != null && ((Station)s).name != null && ((Station)s).name.equals(stationM3U.getName())) {
                                 urlList = ((Station)s).url;
                                 if (((Station)s).logo.contains("http")) {
                                     logo = ((Station)s).logo;
@@ -796,19 +795,20 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                         }
                         urlList.add(stationM3U.getUrl());
                         station.url = urlList;
-                        mStationList.add(station);
+                        stationList.add(station);
                     }
+                    mStationList = stationList;
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            if (mStationList.size() > 0)
+            if (mStationList != null && mStationList.size() > 0)
             {
                 // Send Message to Main thread to load the station list
                 mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
             }
-
-            Log.d(TAG,  mStationList.size() +" stations loaded from server.");
         }
 
         @Nullable

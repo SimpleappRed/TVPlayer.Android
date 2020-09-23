@@ -105,6 +105,7 @@
         android:layout_gravity="center_vertical"
         android:gravity="center"
         android:layout_height="50dp"
+        android:background="@color/colorLightGrey"
         >
         <ImageView
             android:layout_margin="8dp"

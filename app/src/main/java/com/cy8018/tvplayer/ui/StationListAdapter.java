@@ -131,7 +131,10 @@ public class StationListAdapter extends RecyclerView.Adapter<StationListAdapter.
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
             mStationList.clear();
-            mStationList.addAll((List) results.values);
+            if (results.values != null)
+            {
+                mStationList.addAll((List) results.values);
+            }
             notifyDataSetChanged();
         }
     };

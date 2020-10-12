@@ -1025,7 +1025,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return jsonData;
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
+                final String errorMsg = "Exception when loading channels: " + e.getMessage();
+                Log.e(TAG, errorMsg);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), errorMsg, Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
             }
             return null;
         }

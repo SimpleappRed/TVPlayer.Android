@@ -15,8 +15,8 @@
         android:usesCleartextTraffic="true"
         android:configChanges="orientation|screenSize|layoutDirection"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".ui.MainActivity">
-
+        <activity android:name=".ui.MainActivity"
+            android:windowSoftInputMode="adjustPan" >
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />

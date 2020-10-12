@@ -1,11 +1,11 @@
 package com.cy8018.tvplayer.ui;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.annotation.SuppressLint;
@@ -13,8 +13,10 @@ import android.app.Dialog;
 import android.content.pm.ActivityInfo;
 import android.net.TrafficStats;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.Gravity;
@@ -35,9 +37,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.bumptech.glide.Glide;
 import com.cy8018.tvplayer.R;
+import com.cy8018.tvplayer.db.AppDatabase;
+import com.cy8018.tvplayer.db.ChannelData;
 import com.cy8018.tvplayer.model.IptvStation;
 import com.cy8018.tvplayer.util.SimpleM3UParser;
-import com.cy8018.tvplayer.model.Station;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -52,15 +55,22 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.zip.GZIPInputStream;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -70,7 +80,11 @@ import pl.droidsonroids.gif.GifImageView;
 
 public class MainActivity extends AppCompatActivity implements Player.EventListener, AnalyticsListener {
 
+    public boolean isLoading = false;
+
     private static final String TAG = "MainActivity";
+
+    private MessageListener mMessageListener;
 
     // ServerPrefix address
     public static final String ServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
@@ -78,14 +92,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public static String CurrentServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
 
-    // station list
-    protected List<Station> mStationList;
+    // channel list
+    public static List<ChannelData> mChannelList;
 
-    private StationListAdapter adapter;
+//    public static List<ChannelData> mChannelListFull;
 
-    private Station mCurrentStation;
+    private ChannelData mCurrentChannel;
 
-    private int mCurrentStationIndex;
+    private int mCurrentChannelIndex;
 
     private int mCurrentSourceIndex;
 
@@ -115,17 +129,19 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
     private RetainedFragment dataFragment;
 
-    private TextView appTitle, textCurrentStationName, textCurrentStationSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay;
-    private RecyclerView stationListView;
+    private TextView textCurrentChannelSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay, textCurrentChannelName;
+    private TextView channelInfo;
+    private ImageView countryFlag, isFavorite;
     protected GifImageView imageLoading;
-    protected ImageView imageCurrentStationLogo, appLogo;
+    protected ImageView imageCurrentChannelLogo;
+    private BottomNavigationView bottomNav;
+    public Fragment selectedFragment;
+    private View appTitleBar, nowPlayingBarHome;
 
-    private SearchView searchView;
+    private int nowPlayingBarHomeHeight = 0;
 
     private long lastTotalRxBytes = 0;
-
     private long lastTimeStamp = 0;
-
     protected boolean isBuffering = false;
 
     @Override
@@ -142,39 +158,65 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getString(R.string.app_name)),
                 null,
-                DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
-                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS,
+                DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS * 2,
+                DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS * 2,
                 true);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnNavigationItemSelectedListener(navListener);
+        bottomNav.setSelectedItemId(R.id.nav_home);
 
-        // toolbar fancy stuff
-        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
-        getSupportActionBar().setTitle(R.string.search_action);
+        appTitleBar = findViewById(R.id.appTitleBar);
+        nowPlayingBarHome = findViewById(R.id.nowPlayingBarHome);
+        ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
+        nowPlayingBarHomeHeight = nowPlayingBarHomeLayout.height;
+        nowPlayingBarHomeLayout.height = 1;
+        nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
+        nowPlayingBarHome.setVisibility(View.INVISIBLE);
 
-//        searchView.findViewById(R.id.action_search);
-//        searchView.setIconified(false);
+        countryFlag = findViewById(R.id.imageCountryFlag);
+        channelInfo = findViewById(R.id.textChannelInfo);
+        isFavorite = findViewById(R.id.favorite_icon);
 
-
-        stationListView = findViewById(R.id.stationRecyclerView);
-        appTitle = findViewById(R.id.app_title);
-        textCurrentStationName = findViewById(R.id.textCurrentStationName);
+        textCurrentChannelName = findViewById(R.id.textCurrentChannelName);
         textChannelNameOverlay = findViewById(R.id.channel_name);
         textSourceInfoOverlay = findViewById(R.id.source_info);
-        imageCurrentStationLogo = findViewById(R.id.imageCurrentStationLogo);
-        textCurrentStationSource = findViewById(R.id.textCurrentStationSource);
+        imageCurrentChannelLogo = findViewById(R.id.imageCurrentChannelLogo);
+        textCurrentChannelSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
         textNetSpeed = findViewById(R.id.net_speed);
-        appLogo = findViewById(R.id.app_logo);
         imageLoading = findViewById(R.id.imageLoading);
         imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
         imageLoading.setVisibility(View.INVISIBLE);
-
-
         textChannelNameOverlay.setSelected(true);
 
-        textCurrentStationSource.setOnClickListener(new View.OnClickListener() {
+        isFavorite.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCurrentChannel.isFavorite) {
+                    removeFromFavorites(mCurrentChannel.name);
+                    isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star_outline", null, getPackageName()));
+                } else {
+                    addToFavorites(mCurrentChannel.name);
+                    isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star", null, getPackageName()));
+                }
+
+                if (bottomNav.getSelectedItemId() == R.id.nav_home) {
+                    ((HomeFragment)selectedFragment).reloadList();
+                }
+            }
+        });
+
+        nowPlayingBarHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (bottomNav.getSelectedItemId() != R.id.nav_home) {
+                    bottomNav.setSelectedItemId(R.id.nav_home);
+                }
+            }
+        });
+
+        textCurrentChannelSource.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switchSource();
@@ -197,90 +239,175 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         // find the retained fragment on activity restarts
         FragmentManager fm = getSupportFragmentManager();
         dataFragment = (RetainedFragment) fm.findFragmentByTag("data");
-
         // create the fragment and data the first time
         if (dataFragment == null) {
             // add the fragment
             dataFragment = new RetainedFragment();
             fm.beginTransaction().add(dataFragment,"data").commit();
         }
-
         // the data is available in dataFragment.getData()
         PlayerFragmentData data = dataFragment.getData();
         if(data != null) {
-            mStationList = data.getStationList();
+            mChannelList = data.getChannelList();
             mCurrentSourceIndex = data.getCurrentSourceIndex();
-            mCurrentStationIndex = data.getCurrentStationIndex();
+            mCurrentChannelIndex = data.getCurrentChannelIndex();
+            if (mChannelList != null) {
+                mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
+            }
 
-            mCurrentStation = mStationList.get(mCurrentStationIndex);
-
-            setCurrentPlayInfo(mCurrentStation);
-            textCurrentStationSource.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
-            textSourceInfoOverlay.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
-
-            initStationListView();
-            Objects.requireNonNull(stationListView.getLayoutManager()).smoothScrollToPosition(stationListView, null, mCurrentStationIndex);
+            setCurrentPlayInfo(mCurrentChannel);
+            textCurrentChannelSource.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
+            textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
         }
 
-        if (null == mStationList || mStationList.isEmpty()) {
-//            new LoadM3UListThread(ServerPrefix).start();
-//            new LoadListThread(ServerPrefix).start();
-//            new LoadListThread(ServerPrefixAlternative).start();
-            new LoadIptvListThread().start();
+        if (mChannelList == null || mChannelList.size() == 0) {
+            mChannelList = AppDatabase.getInstance(getApplicationContext()).channelDao().getAll();
         }
         new Thread(networkCheckRunnable).start();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_main, menu);
-        MenuItem searchItem = menu.findItem(R.id.action_search);
-        SearchView searchView = (SearchView) searchItem.getActionView();
-
-        searchView.setOnQueryTextListener(
-                new SearchView.OnQueryTextListener() {
-                  @Override
-                  public boolean onQueryTextSubmit(String query) {
-                      return false;
-                  }
-
-                  @Override
-                  public boolean onQueryTextChange(String newText) {
-                      adapter.getFilter().filter(newText);
-                      return false;
-                  }
-              }
-        );
-
-        searchView.setOnSearchClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //search is expanded
-                appLogo.setVisibility(View.INVISIBLE);
-                appTitle.setVisibility(View.INVISIBLE);
-            }
-        });
-
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-            @Override
-            public boolean onClose() {
-                // searchview closed
-                appLogo.setVisibility(View.VISIBLE);
-                appTitle.setVisibility(View.VISIBLE);
-                return false;
-            }
-        });
-
-        return true;
+    public List<ChannelData> getChannelList() {
+        return mChannelList;
     }
+
+    public void addToFavorites(String channelName) {
+        AppDatabase.getInstance(getApplicationContext()).channelDao().addToFavorites(channelName);
+        for (ChannelData channel: mChannelList) {
+            if (channel.name.equals(channelName)) {
+                mChannelList.get(mChannelList.indexOf(channel)).isFavorite = true;
+                break;
+            }
+        }
+    }
+
+    public void removeFromFavorites(String channelName) {
+        AppDatabase.getInstance(getApplicationContext()).channelDao().removeFromFavorites(channelName);
+        for (ChannelData channel: mChannelList) {
+            if (channel.name.equals(channelName)) {
+                mChannelList.get(mChannelList.indexOf(channel)).isFavorite = false;
+                break;
+            }
+        }
+    }
+
+    public List<ChannelData> getChannelListFavorites() {
+
+        List<ChannelData> favChannels = new ArrayList<>();
+        for (ChannelData channel: mChannelList) {
+            if (channel.isFavorite) {
+                favChannels.add(channel);
+            }
+        }
+        return favChannels;
+    }
+
+    public ChannelData getCurrentChannel() {
+        return mCurrentChannel;
+    }
+
+    private BottomNavigationView.OnNavigationItemSelectedListener navListener =
+            new BottomNavigationView.OnNavigationItemSelectedListener() {
+                @Override
+                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                    View frameView = findViewById(R.id.media_frame);
+                    ViewGroup.LayoutParams frameLayout = frameView.getLayoutParams();
+
+                    switch (item.getItemId()) {
+                        case R.id.nav_home:
+                            selectedFragment = new HomeFragment();
+                            frameLayout.height = (int)(frameView.getWidth()*0.5625);
+                            frameView.setLayoutParams(frameLayout);
+                            frameView.setVisibility(View.VISIBLE);
+
+                            break;
+//                        case R.id.nav_fav:
+//                            selectedFragment = new FavoritesFragment();
+//                            frameLayout.height = (int)(frameView.getWidth()*0.5625)/2;
+//                            frameView.setLayoutParams(frameLayout);
+//                            frameView.setVisibility(View.VISIBLE);
+//
+//                            break;
+                        case R.id.nav_channels:
+                            selectedFragment = new ChannelsFragment();
+                            frameLayout.height = 1;
+                            frameView.setLayoutParams(frameLayout);
+                            frameView.setVisibility(View.INVISIBLE);
+                            break;
+                        case R.id.nav_setting:
+                            selectedFragment = new SettingsFragment();
+                            frameLayout.height = 1;
+                            frameView.setLayoutParams(frameLayout);
+                            frameView.setVisibility(View.INVISIBLE);
+                            break;
+                    }
+                    getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
+                            selectedFragment).commit();
+                    return true;
+                }
+            };
+
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        MenuInflater inflater = getMenuInflater();
+//        inflater.inflate(R.menu.menu_main, menu);
+//        MenuItem searchItem = menu.findItem(R.id.action_search);
+//        SearchView searchView = (SearchView) searchItem.getActionView();
+//
+//        searchView.setOnQueryTextListener(
+//                new SearchView.OnQueryTextListener() {
+//                  @Override
+//                  public boolean onQueryTextSubmit(String query) {
+//                      return false;
+//                  }
+//
+//                  @Override
+//                  public boolean onQueryTextChange(String newText) {
+//                      adapter.getFilter().filter(newText);
+//                      return false;
+//                  }
+//              }
+//        );
+//
+//        searchView.setOnSearchClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                //search is expanded
+//                appLogo.setVisibility(View.INVISIBLE);
+//                appTitle.setVisibility(View.INVISIBLE);
+//
+//                View frameView = findViewById(R.id.media_frame);
+//                ViewGroup.LayoutParams layout = frameView.getLayoutParams();
+//                layout.height = (int)(frameView.getWidth()*0.5625)/2;
+//                frameView.setLayoutParams(layout);
+//
+//            }
+//        });
+//
+//        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+//            @Override
+//            public boolean onClose() {
+//                // searchview closed
+//                appLogo.setVisibility(View.VISIBLE);
+//                appTitle.setVisibility(View.VISIBLE);
+//
+//                View frameView = findViewById(R.id.media_frame);
+//                ViewGroup.LayoutParams layout = frameView.getLayoutParams();
+//                layout.height = (int)(frameView.getWidth()*0.5625);
+//                frameView.setLayoutParams(layout);
+//
+//                return false;
+//            }
+//        });
+//
+//        return true;
+//    }
 
     @Override
     protected void onDestroy() {
-
         PlayerFragmentData fragmentData = new PlayerFragmentData();
-        fragmentData.setStationList(mStationList);
-        fragmentData.setCurrentStationIndex(mCurrentStationIndex);
+        fragmentData.setChannelList(mChannelList);
+//        fragmentData.setChannelListFull(mChannelListFull);
+        fragmentData.setCurrentChannelIndex(mCurrentChannelIndex);
         fragmentData.setCurrentSourceIndex(mCurrentSourceIndex);
 
         // store the data in the fragment
@@ -292,7 +419,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-
         outState.putInt(STATE_RESUME_WINDOW, mResumeWindow);
         outState.putLong(STATE_RESUME_POSITION, mResumePosition);
         outState.putBoolean(STATE_PLAYER_FULLSCREEN, mExoPlayerFullscreen);
@@ -301,7 +427,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-
         Log.d(TAG, "onPlayerStateChanged: playWhenReady:"+ playWhenReady + " playbackState:" + playbackState);
         switch (playbackState) {
             case Player.STATE_BUFFERING:
@@ -332,7 +457,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     private long getNetSpeed() {
-
         long nowTotalRxBytes = TrafficStats.getUidRxBytes(getApplicationContext().getApplicationInfo().uid) == TrafficStats.UNSUPPORTED ? 0 : TrafficStats.getTotalRxBytes();
         long nowTimeStamp = System.currentTimeMillis();
         long calculationTime = (nowTimeStamp - lastTimeStamp);
@@ -362,12 +486,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (null == player) {
             return 0;
         }
-
         return player.getBufferedPercentage();
     }
 
     private void initFullscreenDialog() {
-
         mFullScreenDialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen) {
             public void onBackPressed() {
                 if (mExoPlayerFullscreen)
@@ -379,6 +501,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     @SuppressLint("SourceLockedOrientationActivity")
     private void openFullscreenDialog() {
+        if (getCurrentChannel() == null) {
+            return;
+        }
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         ((ViewGroup) playerView.getParent()).removeView(playerView);
@@ -390,17 +515,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     @SuppressLint("SourceLockedOrientationActivity")
     private void closeFullscreenDialog() {
-
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         ((ViewGroup) playerView.getParent()).removeView(playerView);
-        ((FrameLayout) findViewById(R.id.main_media_frame)).addView(playerView);
+        ((FrameLayout) findViewById(R.id.media_frame)).addView(playerView);
         mExoPlayerFullscreen = false;
         mFullScreenDialog.dismiss();
         mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_expand));
     }
 
     private void initFullscreenButton() {
-
         PlayerControlView controlView = playerView.findViewById(R.id.exo_controller);
         mFullScreenIcon = controlView.findViewById(R.id.exo_fullscreen_icon);
         FrameLayout mFullScreenButton = controlView.findViewById(R.id.exo_fullscreen_button);
@@ -413,7 +536,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     closeFullscreenDialog();
             }
         });
-
     }
 
     private void initExoPlayer() {
@@ -423,23 +545,19 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         playerView.setPlayer(player);
-
         //playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-
         player.setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT);
         player.addListener(this);
-
         player.addAnalyticsListener(this);
 
         boolean haveResumePosition = mResumeWindow != C.INDEX_UNSET;
-
         if (haveResumePosition) {
             Log.i("DEBUG"," haveResumePosition ");
             player.seekTo(mResumeWindow, mResumePosition);
         }
 
-        if (null != mCurrentStation) {
-            MediaSource mVideoSource = buildMediaSource(Uri.parse(mCurrentStation.url.get(mCurrentSourceIndex)));
+        if (null != mCurrentChannel) {
+            MediaSource mVideoSource = buildMediaSource(Uri.parse(mCurrentChannel.url.get(mCurrentSourceIndex)));
             Log.i("DEBUG"," mVideoSource: " + mVideoSource);
 
             player.prepare(mVideoSource);
@@ -468,9 +586,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         else
         {
-            findViewById(R.id.main_media_frame).getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            findViewById(R.id.media_frame).getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override public void onGlobalLayout() {
-                    View frameView = findViewById(R.id.main_media_frame);
+                    View frameView = findViewById(R.id.media_frame);
                     ViewGroup.LayoutParams layout = frameView.getLayoutParams();
                     layout.height = (int)(frameView.getWidth()*0.5625);
                     frameView.setLayoutParams(layout);
@@ -499,34 +617,29 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     @Override
     protected void onPause() {
-
         super.onPause();
-
         if (playerView != null && player != null) {
             mResumeWindow = player.getCurrentWindowIndex();
             mResumePosition = Math.max(0, player.getContentPosition());
-
             player.release();
         }
-
         if (mFullScreenDialog != null)
             mFullScreenDialog.dismiss();
     }
 
     private void releasePlayer() {
-
         if (player != null) {
             player.release();
             player = null;
         }
     }
 
-    protected void setCurrentPlayInfo(@NotNull Station station)
+    protected void setCurrentPlayInfo(@NotNull ChannelData channel)
     {
-        String logoUrl = station.logo;
+        String logoUrl = channel.logo;
         if (logoUrl == null || logoUrl.isEmpty())
         {
-            imageCurrentStationLogo.setImageResource(getResources().getIdentifier("@drawable/tv", null, getPackageName()));
+            imageCurrentChannelLogo.setImageResource(getResources().getIdentifier("@drawable/tv_transparent", null, getPackageName()));
         }
         else
         {
@@ -539,41 +652,111 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     .asBitmap()
                     .timeout(10000)
                     .load(logoUrl)
-                    .into(imageCurrentStationLogo);
+                    .into(imageCurrentChannelLogo);
         }
 
-        textChannelNameOverlay.setText(station.name);
-        textCurrentStationName.setText(station.name);
-        textCurrentStationName.setSelected(true);
+        if (channel.countryCode != null && channel.countryCode.length() > 0) {
+            countryFlag.setImageResource(getResources().getIdentifier("@drawable/"+ channel.countryCode, null, getPackageName()));
+        }
+
+        if (channel.isFavorite) {
+            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star", null, getPackageName()));
+        }
+        else {
+            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star_outline", null, getPackageName()));
+        }
+
+        if (channel != null) {
+
+            String sChannelInfo = "";
+            if (channel.countryName != null && channel.countryName.length() > 0) {
+                if (sChannelInfo.length() > 0) {
+                    sChannelInfo += " / ";
+                }
+                sChannelInfo += channel.countryName;
+            }
+            if (channel.languageName != null && channel.languageName.length() > 0) {
+                if (sChannelInfo.length() > 0) {
+                    sChannelInfo += " / ";
+                }
+                sChannelInfo += channel.languageName;
+            }
+            if (channel.category != null && channel.category.length() > 0) {
+                if (sChannelInfo.length() > 0) {
+                    sChannelInfo += " / ";
+                }
+                sChannelInfo += channel.category;
+            }
+
+
+            channelInfo.setText(sChannelInfo);
+        }
+
+        textChannelNameOverlay.setText(channel.name);
+        textCurrentChannelName.setText(channel.name);
+        textCurrentChannelName.setSelected(true);
     }
 
     protected  void switchSource() {
-
-        if (null == mCurrentStation) {
-            mCurrentStation = mStationList.get(mCurrentStationIndex);
+        if (null == mCurrentChannel) {
+            mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
         }
-
         int index = 0;
-        if (mCurrentSourceIndex + 1 < mCurrentStation.url.size()) {
+        if (mCurrentSourceIndex + 1 < mCurrentChannel.url.size()) {
             index = mCurrentSourceIndex + 1;
         }
-        play(mCurrentStation, index);
+        play(mCurrentChannel, index);
     }
 
-    private String getSourceInfo(Station station, int source) {
-
-        return source + 1 + "/" + station.url.size();
+    private String getSourceInfo(ChannelData channel, int source) {
+        return source + 1 + "/" + channel.url.size();
     }
 
-    protected void play(Station station, int source) {
+    public String getCurrentSourceInfo() {
+        return getSourceInfo(mCurrentChannel, mCurrentSourceIndex);
+    }
 
-        mCurrentStationIndex = mStationList.indexOf(station);
+    public ChannelData findChannelByName(String name) {
+        ChannelData channel = null;
+        for (Object s : mChannelList) {
+            if (((ChannelData)s).name.equals(name)) {
+                channel = (ChannelData)s;
+                break;
+            }
+        }
+        return channel;
+    }
+
+    protected void play(ChannelData channel, int source) {
+        mCurrentChannel = channel;
+        mCurrentChannelIndex = mChannelList.indexOf(channel);
         mCurrentSourceIndex = source;
+        setCurrentPlayInfo(channel);
+        textCurrentChannelSource.setText(getSourceInfo(channel, source));
+        textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
 
-        setCurrentPlayInfo(station);
-        textCurrentStationSource.setText(getSourceInfo(station, source));
-        textSourceInfoOverlay.setText(getSourceInfo(mCurrentStation, mCurrentSourceIndex));
-        play(station.url.get(source));
+        if (appTitleBar.getVisibility() == View.VISIBLE) {
+            ViewGroup.LayoutParams layout = appTitleBar.getLayoutParams();
+            layout.height = 1;
+            appTitleBar.setLayoutParams(layout);
+            appTitleBar.setVisibility(View.INVISIBLE);
+        }
+
+        if (nowPlayingBarHome.getVisibility() == View.INVISIBLE) {
+            ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
+            nowPlayingBarHomeLayout.height = nowPlayingBarHomeHeight;
+            nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
+            nowPlayingBarHome.setVisibility(View.VISIBLE);
+        }
+
+        if (bottomNav.getSelectedItemId() != R.id.nav_home) {
+            bottomNav.setSelectedItemId(R.id.nav_home);
+        }
+//        else {
+//            ((HomeFragment) selectedFragment).loadData();
+//        }
+
+        play(channel.url.get(source));
     }
 
     protected void play(String url) {
@@ -587,19 +770,46 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         player.setPlayWhenReady(true);
     }
 
+    public boolean removeAllChannels() {
+        try {
+            AppDatabase.getInstance(getApplicationContext()).channelDao().removeAll();
+            mChannelList.clear();
+        }
+        catch (Exception e) {
+            Toast toast= Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
+            return false;
+        }
+        return true;
+    }
+
+    public void loadChannelList() {
+        if (!isLoading) {
+            new LoadIptvListThread().start();
+        }
+    }
+
+    public void loadM3UChannelList(String url) {
+        if (!isLoading) {
+            new LoadM3UListThread(url).start();
+        }
+    }
+
     private void initStationListView() {
 
         Log.d(TAG, "initStationListView: ");
 
-        if (null == mStationList || mStationList.size() < 1) {
+        if (null == mChannelList || mChannelList.size() < 1) {
             Toast toast= Toast.makeText(getApplicationContext(), "         Unable to load the station list.\nPlease check your network connection.", Toast.LENGTH_LONG);
-            toast.setGravity(Gravity.CENTER, 0, -300);
+            toast.setGravity(Gravity.CENTER, 0, 0);
             toast.show();
         }
-
-        adapter= new StationListAdapter(this, mStationList);
-        stationListView.setAdapter(adapter);
-        stationListView.setLayoutManager(new LinearLayoutManager(this));
+        else {
+            if (bottomNav.getSelectedItemId() != R.id.nav_channels) {
+                bottomNav.setSelectedItemId(R.id.nav_channels);
+            }
+        }
     }
 
     private void getBufferingInfo() {
@@ -609,7 +819,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             textBufferingInfo.setText(bufferingInfo);
             Log.i(TAG, bufferingInfo);
         }
-        if (mCurrentStation != null && mCurrentStation.name != null && mCurrentStation.name.length() > 0)
+        if (mCurrentChannel != null && mCurrentChannel.name != null && mCurrentChannel.name.length() > 0)
         {
             String netSpeed = getNetSpeedText(getNetSpeed());
             textNetSpeed.setText(netSpeed);
@@ -647,14 +857,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
 
             String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
-            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
+            if (null != jsonString && (mChannelList == null || mChannelList.size() == 0))
             {
                 CurrentServerPrefix = serverPrefix;
                 JSONObject object = JSON.parseObject(jsonString);
                 Object objArray = object.get("stations");
                 String str = objArray+"";
-                mStationList = JSON.parseArray(str, Station.class);
-                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+                mChannelList = (ArrayList<ChannelData>) JSON.parseArray(str, ChannelData.class);
+                Log.d(TAG,  mChannelList.size() +" stations loaded from server.");
 
                 // Send Message to Main thread to load the station list
                 mHandler.sendEmptyMessage(MSG_LOAD_LIST);
@@ -685,51 +895,133 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         @Override
         public void run() {
 
+            isLoading = true;
+
+            if (mChannelList != null && mChannelList.size() > 0) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), "Please remove all channels before loading default channels.", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
+            }
+
             String jsonString = getJsonString(getResources().getString(R.string.iptv_station_list));
-            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
+            if (null != jsonString && (mChannelList == null || mChannelList.size() == 0))
             {
                 List<IptvStation> iptvStationList = JSON.parseArray(jsonString, IptvStation.class);
                 Log.d(TAG,  iptvStationList.size() +" stations loaded from server.");
 
-                List stationList = new ArrayList<Station>();
+                ArrayList channelList = new ArrayList<ChannelData>();
                 for (IptvStation iptvStation: iptvStationList) {
 
                     List<String> urlList = new ArrayList<String>();
                     String logo = "";
-                    for (Object s : stationList) {
-                        if (((Station)s).name.equals(iptvStation.name)
-                            ||((Station)s).name.equals(iptvStation.tvg.name)
+                    for (Object s : channelList) {
+                        if (((ChannelData)s).name.equals(iptvStation.name)
+                            ||((ChannelData)s).name.equals(iptvStation.tvg.name)
                         ) {
-                            urlList = ((Station)s).url;
-                            stationList.remove(s);
+                            urlList = ((ChannelData)s).url;
+                            channelList.remove(s);
                             break;
                         }
                     }
-                    Station station = new Station();
-                    station.name = (iptvStation.tvg.name != null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
-                    station.logo = iptvStation.logo;
+                    ChannelData channel = new ChannelData();
+                    channel.name = (iptvStation.tvg.name != null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
+                    channel.logo = iptvStation.logo;
+                    channel.countryCode = iptvStation.country != null ? iptvStation.country.code : "";
+                    channel.countryName = iptvStation.country != null ? iptvStation.country.name : "";
+                    channel.languageName = (iptvStation.language != null && iptvStation.language.size() > 0) ? iptvStation.language.get(0).name : "";
+                    channel.category = iptvStation.category;
                     urlList.add(iptvStation.url);
-                    station.url = urlList;
-                    stationList.add(station);
+                    channel.url = new ArrayList<String>();
+                    if (urlList != null) {
+                        channel.url.addAll(urlList);
+                    }
+                    channelList.add(channel);
                 }
 
-                mStationList = stationList;
+                mChannelList = channelList;
+                AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
 
-                // Send Message to Main thread to load the station list
-                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                if (mChannelList != null)
+                {
+                    if (mChannelList.size() > 0) {
+                        // Send Message to Main thread to load the station list
+                        mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                    }
+
+                    Log.d(TAG,  mChannelList.size() +" channels loaded from server.");
+
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
+                            toast.setGravity(Gravity.CENTER, 0, 0);
+                            toast.show();
+                        }
+                    });
+                }
             }
+            isLoading = false;
+        }
+
+        // Given a string representation of a URL, sets up a connection and gets an input stream.
+        private InputStream downloadUrl(String urlString) throws IOException {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(9000 /* milliseconds */);
+            conn.setConnectTimeout(9000 /* milliseconds */);
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            // Starts the query
+            conn.connect();
+            return conn.getInputStream();
+        }
+
+        public String inputStream2Str(InputStream is) throws IOException {
+            StringBuffer sb;
+            BufferedReader br = null;
+            try {
+                br = new BufferedReader(new InputStreamReader(is));
+
+                sb = new StringBuffer();
+
+                String data;
+                while ((data = br.readLine()) != null) {
+                    sb.append(data);
+                }
+            } finally {
+                br.close();
+            }
+
+            return sb.toString();
         }
 
         @Nullable
         private String getJsonString(String url) {
+            String jsonData = null;
             try {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(url).build();
-                Response responses = client.newCall(request).execute();
-                assert responses.body() != null;
-                String jsonData = responses.body().string();
-                Log.d(TAG, "getJsonString: [" + jsonData + "]");
+                InputStream stream = null;
 
+                try {
+                    stream = downloadUrl(url);
+                    if (url.endsWith(".gz"))
+                    {
+                        stream = new GZIPInputStream(stream);
+                    }
+                    jsonData = inputStream2Str(stream);
+                    // Makes sure that the InputStream is closed after the app is
+                    // finished using it.
+                } finally {
+                    if (stream != null) {
+                        stream.close();
+                    }
+                }
+
+                Log.d(TAG, "jsonData: " + jsonData);
                 return jsonData;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -741,81 +1033,92 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadM3UListThread extends Thread {
 
-        private String serverPrefix;
+        private String channelListUrl;
 
-        LoadM3UListThread(String serverPrefix) {
-            this.serverPrefix = serverPrefix;
+        LoadM3UListThread(String url) {
+            this.channelListUrl = url;
         }
 
         @Override
         public void run() {
-
-            if (serverPrefix == null || serverPrefix.length() < 1) {
+            if (channelListUrl == null || channelListUrl.length() < 1) {
                 return;
             }
-//
-//            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
-//            if (null != jsonString && (mStationList == null || mStationList.size() == 0))
-//            {
-//                CurrentServerPrefix = serverPrefix;
-//                JSONObject object = JSON.parseObject(jsonString);
-//                Object objArray = object.get("stations");
-//                String str = objArray+"";
-//                mStationList = JSON.parseArray(str, Station.class);
-//                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
-//            }
 
-            String m3UString = getM3UString(getResources().getString(R.string.iptv_station_list));
-            if (null != m3UString && mStationList != null )
+            isLoading = true;
+            String m3UString = getM3UString(channelListUrl);
+            if (null != m3UString && mChannelList != null )
             {
                 try {
-                    List stationList = new ArrayList<Station>();
+                    ArrayList channelList = new ArrayList<ChannelData>();
                     List<SimpleM3UParser.M3U_Entry> m3UStationList = new SimpleM3UParser().parseM3UString(m3UString);
                     for (SimpleM3UParser.M3U_Entry stationM3U : m3UStationList) {
 
                         List<String> urlList = new ArrayList<String>();
                         String logo = "";
-                        for (Object s : mStationList) {
-                            if (s != null && ((Station)s).name != null && ((Station)s).name.equals(stationM3U.getName())) {
-                                urlList = ((Station)s).url;
-                                if (((Station)s).logo.contains("http")) {
-                                    logo = ((Station)s).logo;
+                        for (Object s : mChannelList) {
+                            if (s != null && ((ChannelData)s).name != null && ((ChannelData)s).name.equals(stationM3U.getName())) {
+                                urlList = ((ChannelData)s).url;
+                                if (((ChannelData)s).logo != null && ((ChannelData)s).logo.contains("http")) {
+                                    logo = ((ChannelData)s).logo;
                                 }
-                                mStationList.remove(s);
+                                mChannelList.remove(s);
                                 break;
                             }
                         }
-                        Station station = new Station();
-                        station.name = stationM3U.getName();
+                        ChannelData channel = new ChannelData();
+                        channel.name = stationM3U.getName();
                         if (logo.contains("http")) {
-                            station.logo = logo;
+                            channel.logo = logo;
                         }
                         else {
-                            station.logo = stationM3U.getTvgLogo();
+                            channel.logo = stationM3U.getTvgLogo();
                         }
                         urlList.add(stationM3U.getUrl());
-                        station.url = urlList;
-                        stationList.add(station);
+                        channel.url = new ArrayList<String>();
+                        if (urlList != null) {
+                            channel.url.addAll(urlList);
+                        }
+                        channelList.add(channel);
+
                     }
-                    mStationList = stationList;
+                    mChannelList = channelList;
+                    AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
 
                 } catch (IOException e) {
                     e.printStackTrace();
+                    isLoading = false;
                 }
             }
-            if (mStationList != null && mStationList.size() > 0)
+            if (mChannelList != null)
             {
-                // Send Message to Main thread to load the station list
-                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
-                Log.d(TAG,  mStationList.size() +" stations loaded from server.");
+                if (mChannelList.size() > 0) {
+                    // Send Message to Main thread to load the station list
+                    mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                }
+
+                Log.d(TAG,  mChannelList.size() +" channels loaded from server.");
+
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
             }
+            isLoading = false;
         }
 
         @Nullable
         private String getM3UString(String url) {
             try {
                 OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(url).build();
+
+                Request.Builder requestBuilder = new Request.Builder();
+//                requestBuilder.header("Accept-Encoding", "gzip");
+                Request request = requestBuilder.url(url).build();
                 Response responses = client.newCall(request).execute();
                 assert responses.body() != null;
                 String data = responses.body().string();
@@ -868,9 +1171,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 mainActivity.initStationListView();
             }
             else if (msg.what == MSG_PLAY) {
-                int selectedPosition = (int) msg.obj;
-                mainActivity.mCurrentStation = mainActivity.mStationList.get(selectedPosition);
-                mainActivity.play(mainActivity.mCurrentStation, 0);
+                ChannelData channel = (ChannelData) msg.obj;
+                if (channel != null) {
+                    mainActivity.setCurrentPlayInfo(channel);
+                    mainActivity.play(channel, 0);
+                }
             }
             else if (msg.what == MSG_GET_BUFFERING_INFO) {
                 mainActivity.getBufferingInfo();

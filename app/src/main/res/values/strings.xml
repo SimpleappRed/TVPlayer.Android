@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">TV Player</string>
     <string name="station_list_file_name">tv_station_list.json</string>
-    <string name="iptv_station_list">https://raw.githubusercontent.com/cy8018/Resources/master/tv/channels.json</string>
-    <string name="search_hint">Type here…</string>
+<!--    <string name="iptv_station_list">https://raw.githubusercontent.com/cy8018/Resources/master/tv/channels.json</string>-->
+    <string name="iptv_station_list">http://52.155.97.142/tv/channels.json.gz</string>
+    <string name="search_hint">Channel Name/Country/Language...</string>
     <string name="search_action"></string>
 </resources>

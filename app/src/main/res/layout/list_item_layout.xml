@@ -4,6 +4,8 @@
     android:layout_height="wrap_content"
     android:padding="8dp"
     android:id="@+id/parent_layout"
+    android:background="@drawable/recycler_view_selector"
+    android:layout_weight="10"
     >
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,26 +13,42 @@
         android:orientation="horizontal"
         >
         <ImageView
-            android:layout_margin="6dp"
+            android:id="@+id/logo"
             android:layout_width="60dp"
             android:layout_height="30dp"
-            android:id="@+id/logo"
+            android:layout_margin="6dp"
+            android:layout_gravity="center_vertical|start"
+            android:gravity="center_vertical|start"
             />
+
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:id="@+id/stationTitle"
-            android:textColor="#000"
-            android:layout_marginLeft="8dp"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:textSize="20sp"
-            android:shadowDx="3"
-            android:shadowDy="3"
-            android:shadowRadius="5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:ellipsize="marquee"
             android:marqueeRepeatLimit="marquee_forever"
             android:singleLine="true"
+            android:textColor="#000"
+            android:textSize="18sp"
+            android:layout_weight="10"
+            android:layout_gravity="center_vertical|start"
+            android:gravity="center_vertical|start"
+            />
+        <ImageView
+            android:id="@+id/station_country_flag"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_margin="6dp"
+            android:layout_gravity="center_vertical|end"
+            android:gravity="center_vertical|end"
+            />
+        <ImageView
+            android:id="@+id/station_favorite_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical|end"
+            android:gravity="center_vertical|end"
+            android:layout_margin="6dp"
             />
     </LinearLayout>
 </RelativeLayout>

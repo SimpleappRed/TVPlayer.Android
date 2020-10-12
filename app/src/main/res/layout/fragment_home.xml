@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <TextView
+        android:id="@+id/no_fav_channel_text"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="20dp"
+        android:textSize="20sp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="There is no favorites channel yet, please add to favorites by clicking the star icon to the right of the channel name."
+        />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/channel_list_favorite"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</LinearLayout>

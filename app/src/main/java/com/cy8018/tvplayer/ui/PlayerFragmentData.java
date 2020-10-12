@@ -1,24 +1,35 @@
 package com.cy8018.tvplayer.ui;
 
-import com.cy8018.tvplayer.model.Station;
+import com.cy8018.tvplayer.db.ChannelData;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerFragmentData {
 
-    private List<Station> mStationList;
+    private List<ChannelData> mChannelList;
 
-    private int mCurrentStationIndex;
+//    private List<ChannelData> mChannelListFull;
+
+    private int mCurrentChannelIndex;
 
     private int mCurrentSourceIndex;
 
-    public List<Station> getStationList() {
-        return mStationList;
+    public List<ChannelData> getChannelList() {
+        return mChannelList;
     }
 
-    public void setStationList(List<Station> list) {
-        mStationList = list;
+//    public List<ChannelData> getChannelListFull() {
+//        return mChannelListFull;
+//    }
+
+    public void setChannelList(List<ChannelData> list) {
+        mChannelList = list;
     }
+
+//    public void setChannelListFull(List<ChannelData> list) {
+//        mChannelListFull = list;
+//    }
 
     public int getCurrentSourceIndex() {
         return mCurrentSourceIndex;
@@ -28,11 +39,11 @@ public class PlayerFragmentData {
         mCurrentSourceIndex = source;
     }
 
-    public int getCurrentStationIndex() {
-        return  mCurrentStationIndex;
+    public int getCurrentChannelIndex() {
+        return mCurrentChannelIndex;
     }
 
-    public void setCurrentStationIndex(int index) {
-        mCurrentStationIndex = index;
+    public void setCurrentChannelIndex(int index) {
+        mCurrentChannelIndex = index;
     }
 }

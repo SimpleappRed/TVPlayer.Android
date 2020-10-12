@@ -55,9 +55,20 @@ public class SettingsFragment extends Fragment {
         loadUrlBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String url = ChannelListUrl.getText().toString();
+                String url = ChannelListUrl.getText().toString().toLowerCase();
                 if (url != null && url.length() > 0) {
-                    ((MainActivity)getActivity()).loadM3UChannelList(url);
+
+                    if (url.endsWith(".json") || url.endsWith(".json.gz")) {
+                        ((MainActivity)getActivity()).loadJsonChannelList(url);
+                    }
+                    else if (url.endsWith(".m3u") || url.endsWith(".m3u8")) {
+                        ((MainActivity)getActivity()).loadM3UChannelList(url);
+                    }
+                    else {
+                        Toast toast= Toast.makeText(getContext(), "Incorrect M3U URL.", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
                 }
                 else {
                     Toast toast= Toast.makeText(getContext(), "Please input URL.", Toast.LENGTH_LONG);
@@ -73,7 +84,7 @@ public class SettingsFragment extends Fragment {
                 Toast toast= Toast.makeText(getContext(), "Loading channels, please wait...", Toast.LENGTH_LONG);
                 toast.setGravity(Gravity.CENTER, 0, 0);
                 toast.show();
-                ((MainActivity)getActivity()).loadChannelList();
+                ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.iptv_station_list));
             }
         });
 
@@ -81,7 +92,7 @@ public class SettingsFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (((MainActivity)getActivity()).removeAllChannels()) {
-                    Toast toast= Toast.makeText(getContext(), "All channels removed.", Toast.LENGTH_LONG);
+                    Toast toast= Toast.makeText(getContext(), "All channels removed.", Toast.LENGTH_SHORT);
                     toast.setGravity(Gravity.CENTER, 0, 0);
                     toast.show();
 

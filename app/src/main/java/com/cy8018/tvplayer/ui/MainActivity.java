@@ -278,6 +278,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 break;
             }
         }
+        if (mCurrentChannel != null && channelName.equals(mCurrentChannel.name)) {
+            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star", null, getPackageName()));
+        }
     }
 
     public void removeFromFavorites(String channelName) {
@@ -287,6 +290,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 mChannelList.get(mChannelList.indexOf(channel)).isFavorite = false;
                 break;
             }
+        }
+        if (mCurrentChannel != null && channelName.equals(mCurrentChannel.name)) {
+            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star_outline", null, getPackageName()));
         }
     }
 
@@ -784,9 +790,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return true;
     }
 
-    public void loadChannelList() {
+    public void loadChannelList(String url) {
         if (!isLoading) {
-            new LoadIptvListThread().start();
+            new LoadIptvListThread(url).start();
+        }
+    }
+
+    public void loadJsonChannelList(String url) {
+        if (!isLoading) {
+            new LoadIptvJsonListThread(url).start();
         }
     }
 
@@ -892,10 +904,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadIptvListThread extends Thread {
 
+        private String channelListUrl;
+
+        LoadIptvListThread(String url) {
+            this.channelListUrl = url;
+        }
+
         @Override
         public void run() {
 
-            isLoading = true;
+            if (channelListUrl == null || channelListUrl.length() == 0) {
+                return;
+            }
 
             if (mChannelList != null && mChannelList.size() > 0) {
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
@@ -908,7 +928,210 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 });
             }
 
-            String jsonString = getJsonString(getResources().getString(R.string.iptv_station_list));
+            isLoading = true;
+
+            String jsonString = getJsonString(channelListUrl);
+            if (null != jsonString && (mChannelList == null || mChannelList.size() == 0))
+            {
+                List<IptvStation> iptvStationList = JSON.parseArray(jsonString, IptvStation.class);
+                Log.d(TAG,  iptvStationList.size() +" stations loaded from server.");
+
+                ArrayList channelList = new ArrayList<ChannelData>();
+                for (IptvStation iptvStation: iptvStationList) {
+
+                    List<String> urlList = new ArrayList<String>();
+                    String logo = "";
+                    for (Object s : channelList) {
+                        if (((ChannelData)s).name.equals(iptvStation.name)
+                                ||((ChannelData)s).name.equals(iptvStation.tvg.name)
+                        ) {
+                            urlList = ((ChannelData)s).url;
+                            channelList.remove(s);
+                            break;
+                        }
+                    }
+                    ChannelData channel = new ChannelData();
+                    channel.name = (iptvStation.tvg.name != null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
+                    channel.logo = iptvStation.logo;
+                    channel.countryCode = iptvStation.country != null ? iptvStation.country.code : "";
+                    channel.countryName = iptvStation.country != null ? iptvStation.country.name : "";
+                    channel.languageName = (iptvStation.language != null && iptvStation.language.size() > 0) ? iptvStation.language.get(0).name : "";
+                    channel.category = iptvStation.category;
+                    urlList.add(iptvStation.url);
+                    channel.url = new ArrayList<String>();
+                    if (urlList != null) {
+                        channel.url.addAll(urlList);
+                    }
+                    channelList.add(channel);
+                }
+
+                mChannelList = channelList;
+                AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
+
+                if (mChannelList != null)
+                {
+                    if (mChannelList.size() > 0) {
+                        // Send Message to Main thread to load the station list
+                        mHandler.sendEmptyMessage(MSG_LOAD_LIST);
+                    }
+
+                    Log.d(TAG,  mChannelList.size() +" channels loaded from server.");
+
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
+                            toast.setGravity(Gravity.CENTER, 0, 0);
+                            toast.show();
+                        }
+                    });
+                }
+            }
+            isLoading = false;
+        }
+
+        // Given a string representation of a URL, sets up a connection and gets an input stream.
+        private InputStream downloadUrl(String urlString) throws IOException {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(9000 /* milliseconds */);
+            conn.setConnectTimeout(6000 /* milliseconds */);
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            // Starts the query
+            conn.connect();
+            return conn.getInputStream();
+        }
+
+        public String inputStream2Str(InputStream is) throws IOException {
+            StringBuffer sb;
+            BufferedReader br = null;
+            try {
+                br = new BufferedReader(new InputStreamReader(is));
+
+                sb = new StringBuffer();
+
+                String data;
+                while ((data = br.readLine()) != null) {
+                    sb.append(data);
+                }
+            } finally {
+                br.close();
+            }
+
+            return sb.toString();
+        }
+
+        private String getJsonString(String url) {
+            String jsonData = null;
+            try {
+                InputStream stream = null;
+
+                try {
+                    stream = downloadUrl(url);
+                    if (url.endsWith(".gz"))
+                    {
+                        stream = new GZIPInputStream(stream);
+                    }
+                    jsonData = inputStream2Str(stream);
+                    // Makes sure that the InputStream is closed after the app is
+                    // finished using it.
+                } finally {
+                    if (stream != null) {
+                        stream.close();
+                    }
+                }
+
+                Log.d(TAG, "jsonData: " + jsonData);
+                return jsonData;
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                final String errorMsg = "Exception when loading channels: " + e.getMessage();
+                Log.e(TAG, errorMsg);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), errorMsg, Toast.LENGTH_SHORT);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
+
+                return getJsonString2(getResources().getString(R.string.iptv_station_list2));
+            }
+        }
+
+        @Nullable
+        private String getJsonString2(String url) {
+            String jsonData = null;
+            try {
+                InputStream stream = null;
+
+                try {
+                    stream = downloadUrl(url);
+                    if (url.endsWith(".gz"))
+                    {
+                        stream = new GZIPInputStream(stream);
+                    }
+                    jsonData = inputStream2Str(stream);
+                    // Makes sure that the InputStream is closed after the app is
+                    // finished using it.
+                } finally {
+                    if (stream != null) {
+                        stream.close();
+                    }
+                }
+
+                Log.d(TAG, "jsonData: " + jsonData);
+                return jsonData;
+            } catch (Exception e) {
+                isLoading = false;
+                e.printStackTrace();
+                final String errorMsg = "Exception when loading channels: " + e.getMessage();
+                Log.e(TAG, errorMsg);
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), errorMsg, Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
+            }
+            return null;
+        }
+    }
+
+    public class LoadIptvJsonListThread extends Thread {
+
+        private String channelListUrl;
+
+        LoadIptvJsonListThread(String url) {
+            this.channelListUrl = url;
+        }
+
+        @Override
+        public void run() {
+
+            if (channelListUrl == null || channelListUrl.length() == 0) {
+                return;
+            }
+
+            if (mChannelList != null && mChannelList.size() > 0) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast toast = Toast.makeText(getApplicationContext(), "Please remove all channels before loading default channels.", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.CENTER, 0, 0);
+                        toast.show();
+                    }
+                });
+            }
+
+            isLoading = true;
+
+            String jsonString = getJsonString(channelListUrl);
             if (null != jsonString && (mChannelList == null || mChannelList.size() == 0))
             {
                 List<IptvStation> iptvStationList = JSON.parseArray(jsonString, IptvStation.class);
@@ -1000,7 +1223,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             return sb.toString();
         }
 
-        @Nullable
         private String getJsonString(String url) {
             String jsonData = null;
             try {
@@ -1025,12 +1247,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 return jsonData;
             } catch (Exception e) {
                 e.printStackTrace();
+
                 final String errorMsg = "Exception when loading channels: " + e.getMessage();
                 Log.e(TAG, errorMsg);
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
-                        Toast toast = Toast.makeText(getApplicationContext(), errorMsg, Toast.LENGTH_LONG);
+                        Toast toast = Toast.makeText(getApplicationContext(), errorMsg, Toast.LENGTH_SHORT);
                         toast.setGravity(Gravity.CENTER, 0, 0);
                         toast.show();
                     }
@@ -1107,7 +1330,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 }
 
                 Log.d(TAG,  mChannelList.size() +" channels loaded from server.");
-
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
@@ -1137,6 +1359,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             } catch (Exception e) {
                 e.printStackTrace();
                 Log.e(TAG, "Exception when loading station list: " + e.getMessage());
+                isLoading = false;
             }
             return null;
         }

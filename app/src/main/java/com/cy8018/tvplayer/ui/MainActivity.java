@@ -921,7 +921,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
-                        Toast toast = Toast.makeText(getApplicationContext(), "Please remove all channels before loading default channels.", Toast.LENGTH_LONG);
+                        Toast toast = Toast.makeText(getApplicationContext(), "Please remove all channels before loading sample channels.", Toast.LENGTH_LONG);
                         toast.setGravity(Gravity.CENTER, 0, 0);
                         toast.show();
                     }

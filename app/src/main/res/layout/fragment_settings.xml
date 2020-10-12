@@ -240,7 +240,7 @@
             android:textStyle="normal"
             android:textSize="13sp"
             android:textAllCaps="false"
-            android:text=" Load Default Channels "
+            android:text=" Load Sample Channels "
             android:background="@drawable/round_corner"
             />
 

@@ -95,8 +95,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     // channel list
     public static List<ChannelData> mChannelList;
 
-//    public static List<ChannelData> mChannelListFull;
-
     private ChannelData mCurrentChannel;
 
     private int mCurrentChannelIndex;
@@ -323,26 +321,27 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
                     switch (item.getItemId()) {
                         case R.id.nav_home:
+                            if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
+                                ((ChannelsFragment) selectedFragment).clearFilter();
+                            }
                             selectedFragment = new HomeFragment();
                             frameLayout.height = (int)(frameView.getWidth()*0.5625);
                             frameView.setLayoutParams(frameLayout);
                             frameView.setVisibility(View.VISIBLE);
-
                             break;
-//                        case R.id.nav_fav:
-//                            selectedFragment = new FavoritesFragment();
-//                            frameLayout.height = (int)(frameView.getWidth()*0.5625)/2;
-//                            frameView.setLayoutParams(frameLayout);
-//                            frameView.setVisibility(View.VISIBLE);
-//
-//                            break;
                         case R.id.nav_channels:
+                            if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
+                                ((ChannelsFragment) selectedFragment).clearFilter();
+                            }
                             selectedFragment = new ChannelsFragment();
                             frameLayout.height = 1;
                             frameView.setLayoutParams(frameLayout);
                             frameView.setVisibility(View.INVISIBLE);
                             break;
                         case R.id.nav_setting:
+                            if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
+                                ((ChannelsFragment) selectedFragment).clearFilter();
+                            }
                             selectedFragment = new SettingsFragment();
                             frameLayout.height = 1;
                             frameView.setLayoutParams(frameLayout);
@@ -354,62 +353,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     return true;
                 }
             };
-
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        MenuInflater inflater = getMenuInflater();
-//        inflater.inflate(R.menu.menu_main, menu);
-//        MenuItem searchItem = menu.findItem(R.id.action_search);
-//        SearchView searchView = (SearchView) searchItem.getActionView();
-//
-//        searchView.setOnQueryTextListener(
-//                new SearchView.OnQueryTextListener() {
-//                  @Override
-//                  public boolean onQueryTextSubmit(String query) {
-//                      return false;
-//                  }
-//
-//                  @Override
-//                  public boolean onQueryTextChange(String newText) {
-//                      adapter.getFilter().filter(newText);
-//                      return false;
-//                  }
-//              }
-//        );
-//
-//        searchView.setOnSearchClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                //search is expanded
-//                appLogo.setVisibility(View.INVISIBLE);
-//                appTitle.setVisibility(View.INVISIBLE);
-//
-//                View frameView = findViewById(R.id.media_frame);
-//                ViewGroup.LayoutParams layout = frameView.getLayoutParams();
-//                layout.height = (int)(frameView.getWidth()*0.5625)/2;
-//                frameView.setLayoutParams(layout);
-//
-//            }
-//        });
-//
-//        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-//            @Override
-//            public boolean onClose() {
-//                // searchview closed
-//                appLogo.setVisibility(View.VISIBLE);
-//                appTitle.setVisibility(View.VISIBLE);
-//
-//                View frameView = findViewById(R.id.media_frame);
-//                ViewGroup.LayoutParams layout = frameView.getLayoutParams();
-//                layout.height = (int)(frameView.getWidth()*0.5625);
-//                frameView.setLayoutParams(layout);
-//
-//                return false;
-//            }
-//        });
-//
-//        return true;
-//    }
 
     @Override
     protected void onDestroy() {

@@ -59,6 +59,10 @@ public class ChannelsFragment extends Fragment {
         return view;
     }
 
+    public void clearFilter() {
+        adapter.getFilter().filter("");
+    }
+
     public void reloadList() {
         mChannelList = ((MainActivity)getActivity()).getChannelList();
 

@@ -16,6 +16,9 @@ public interface ChannelDao {
     @Query("SELECT * FROM channels WHERE is_favorite = 1")
     List<ChannelData> loadAllFavorites();
 
+    @Query("SELECT last_source FROM channels WHERE name = :name")
+    int getLastSource(String name);
+
     @Query("SELECT * FROM channels WHERE name LIKE '%' || :name || '%'")
     List<ChannelData> findAllByName(String name);
 

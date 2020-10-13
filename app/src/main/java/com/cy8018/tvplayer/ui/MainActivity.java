@@ -703,6 +703,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     protected void play(ChannelData channel, int source) {
+        AppDatabase.getInstance(getApplicationContext()).channelDao().setLastSource(channel.name, source);
         mCurrentChannel = channel;
         mCurrentChannelIndex = mChannelList.indexOf(channel);
         mCurrentSourceIndex = source;
@@ -713,6 +714,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         setAppTitleBarPlayingInfo();
 
         play(channel.url.get(source));
+    }
+
+    protected void play(ChannelData channel) {
+        int source = AppDatabase.getInstance(getApplicationContext()).channelDao().getLastSource(channel.name);
+        play(channel, source);
     }
 
     protected void play(String url) {
@@ -1363,7 +1369,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 ChannelData channel = (ChannelData) msg.obj;
                 if (channel != null) {
                     mainActivity.setCurrentPlayInfo(channel);
-                    mainActivity.play(channel, 0);
+                    mainActivity.play(channel);
                 }
             }
             else if (msg.what == MSG_GET_BUFFERING_INFO) {

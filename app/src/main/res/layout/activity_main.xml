@@ -83,6 +83,8 @@
                 android:layout_marginStart="8dp"
                 android:textStyle="italic"
                 android:textSize="12sp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"/>
         </LinearLayout>
 

@@ -701,6 +701,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             channelInfo.setText(sChannelInfo);
         }
 
+        channelInfo.setSelected(true);
         textChannelNameOverlay.setText(channel.name);
         textCurrentChannelName.setText(channel.name);
         textCurrentChannelName.setSelected(true);
@@ -979,13 +980,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     }
                     channelList.add(channel);
                 }
-
                 mChannelList = channelList;
-                AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
-
                 if (mChannelList != null)
                 {
                     if (mChannelList.size() > 0) {
+                        AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
                         // Send Message to Main thread to load the station list
                         mHandler.sendEmptyMessage(MSG_LOAD_LIST);
                     }
@@ -1182,11 +1181,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 }
 
                 mChannelList = channelList;
-                AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
 
                 if (mChannelList != null)
                 {
                     if (mChannelList.size() > 0) {
+                        AppDatabase.getInstance(getApplicationContext()).channelDao().insertAll(channelList);
                         // Send Message to Main thread to load the station list
                         mHandler.sendEmptyMessage(MSG_LOAD_LIST);
                     }

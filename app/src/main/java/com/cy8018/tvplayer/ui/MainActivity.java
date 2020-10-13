@@ -251,13 +251,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mChannelList = data.getChannelList();
             mCurrentSourceIndex = data.getCurrentSourceIndex();
             mCurrentChannelIndex = data.getCurrentChannelIndex();
-            if (mChannelList != null) {
-                mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
-            }
+            mCurrentChannel = data.getCurrentChannel();
+//            if (mChannelList != null) {
+//                mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
+//            }
 
             setCurrentPlayInfo(mCurrentChannel);
             textCurrentChannelSource.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
             textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
+
+            setAppTitleBarPlayingInfo();
         }
 
         if (mChannelList == null || mChannelList.size() == 0) {
@@ -311,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return mCurrentChannel;
     }
 
-    private BottomNavigationView.OnNavigationItemSelectedListener navListener =
+    private final BottomNavigationView.OnNavigationItemSelectedListener navListener =
             new BottomNavigationView.OnNavigationItemSelectedListener() {
                 @Override
                 public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -412,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     protected void onDestroy() {
         PlayerFragmentData fragmentData = new PlayerFragmentData();
         fragmentData.setChannelList(mChannelList);
-//        fragmentData.setChannelListFull(mChannelListFull);
+        fragmentData.setCurrentChannel(mCurrentChannel);
         fragmentData.setCurrentChannelIndex(mCurrentChannelIndex);
         fragmentData.setCurrentSourceIndex(mCurrentSourceIndex);
 
@@ -733,6 +736,28 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return channel;
     }
 
+    private void setAppTitleBarPlayingInfo() {
+        if (mCurrentChannel != null) {
+            if (appTitleBar.getVisibility() == View.VISIBLE) {
+                ViewGroup.LayoutParams layout = appTitleBar.getLayoutParams();
+                layout.height = 1;
+                appTitleBar.setLayoutParams(layout);
+                appTitleBar.setVisibility(View.INVISIBLE);
+            }
+
+            if (nowPlayingBarHome.getVisibility() == View.INVISIBLE) {
+                ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
+                nowPlayingBarHomeLayout.height = nowPlayingBarHomeHeight;
+                nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
+                nowPlayingBarHome.setVisibility(View.VISIBLE);
+            }
+
+            if (bottomNav.getSelectedItemId() != R.id.nav_home) {
+                bottomNav.setSelectedItemId(R.id.nav_home);
+            }
+        }
+    }
+
     protected void play(ChannelData channel, int source) {
         mCurrentChannel = channel;
         mCurrentChannelIndex = mChannelList.indexOf(channel);
@@ -741,26 +766,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         textCurrentChannelSource.setText(getSourceInfo(channel, source));
         textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
 
-        if (appTitleBar.getVisibility() == View.VISIBLE) {
-            ViewGroup.LayoutParams layout = appTitleBar.getLayoutParams();
-            layout.height = 1;
-            appTitleBar.setLayoutParams(layout);
-            appTitleBar.setVisibility(View.INVISIBLE);
-        }
-
-        if (nowPlayingBarHome.getVisibility() == View.INVISIBLE) {
-            ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
-            nowPlayingBarHomeLayout.height = nowPlayingBarHomeHeight;
-            nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
-            nowPlayingBarHome.setVisibility(View.VISIBLE);
-        }
-
-        if (bottomNav.getSelectedItemId() != R.id.nav_home) {
-            bottomNav.setSelectedItemId(R.id.nav_home);
-        }
-//        else {
-//            ((HomeFragment) selectedFragment).loadData();
-//        }
+        setAppTitleBarPlayingInfo();
 
         play(channel.url.get(source));
     }
@@ -855,7 +861,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadListThread extends Thread {
 
-        private String serverPrefix;
+        private final String serverPrefix;
 
         LoadListThread(String serverPrefix) {
             this.serverPrefix = serverPrefix;
@@ -904,7 +910,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadIptvListThread extends Thread {
 
-        private String channelListUrl;
+        private final String channelListUrl;
 
         LoadIptvListThread(String url) {
             this.channelListUrl = url;
@@ -945,6 +951,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                         if (((ChannelData)s).name.equals(iptvStation.name)
                                 ||((ChannelData)s).name.equals(iptvStation.tvg.name)
                         ) {
+                            if (((ChannelData)s).logo != null && ((ChannelData)s).logo.length() > 0) {
+                                logo = ((ChannelData)s).logo;
+                            }
+
                             urlList = ((ChannelData)s).url;
                             channelList.remove(s);
                             break;
@@ -952,7 +962,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     }
                     ChannelData channel = new ChannelData();
                     channel.name = (iptvStation.tvg.name != null && !iptvStation.tvg.name.isEmpty()) ? iptvStation.tvg.name : iptvStation.name;
-                    channel.logo = iptvStation.logo;
+                    if (iptvStation.logo != null && iptvStation.logo.length() > 0) {
+                        channel.logo = iptvStation.logo;
+                    }
+                    else {
+                        channel.logo = logo;
+                    }
                     channel.countryCode = iptvStation.country != null ? iptvStation.country.code : "";
                     channel.countryName = iptvStation.country != null ? iptvStation.country.name : "";
                     channel.languageName = (iptvStation.language != null && iptvStation.language.size() > 0) ? iptvStation.language.get(0).name : "";
@@ -1105,7 +1120,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadIptvJsonListThread extends Thread {
 
-        private String channelListUrl;
+        private final String channelListUrl;
 
         LoadIptvJsonListThread(String url) {
             this.channelListUrl = url;
@@ -1265,7 +1280,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public class LoadM3UListThread extends Thread {
 
-        private String channelListUrl;
+        private final String channelListUrl;
 
         LoadM3UListThread(String url) {
             this.channelListUrl = url;

@@ -9,7 +9,7 @@ public class PlayerFragmentData {
 
     private List<ChannelData> mChannelList;
 
-//    private List<ChannelData> mChannelListFull;
+    private ChannelData mCurrentChannel;
 
     private int mCurrentChannelIndex;
 
@@ -19,9 +19,13 @@ public class PlayerFragmentData {
         return mChannelList;
     }
 
-//    public List<ChannelData> getChannelListFull() {
-//        return mChannelListFull;
-//    }
+    public ChannelData getCurrentChannel() {
+        return mCurrentChannel;
+    }
+
+    public void setCurrentChannel(ChannelData channel) {
+        mCurrentChannel = channel;
+    }
 
     public void setChannelList(List<ChannelData> list) {
         mChannelList = list;

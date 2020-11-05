@@ -142,14 +142,21 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private long lastTimeStamp = 0;
     protected boolean isBuffering = false;
 
+    public LoadingDialog loadingDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Log.d(TAG, "onCreate: ");
+
+
+        loadingDialog = new LoadingDialog(this);
 
         // Produces DataSource instances through which media data is loaded.
 //        dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
@@ -748,18 +755,21 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public void loadChannelList(String url) {
         if (!isLoading) {
+            loadingDialog.startLoadingDialog();
             new LoadIptvListThread(url).start();
         }
     }
 
     public void loadJsonChannelList(String url) {
         if (!isLoading) {
+            loadingDialog.startLoadingDialog();
             new LoadIptvJsonListThread(url).start();
         }
     }
 
     public void loadM3UChannelList(String url) {
         if (!isLoading) {
+            loadingDialog.startLoadingDialog();
             new LoadM3UListThread(url).start();
         }
     }
@@ -831,7 +841,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 JSONObject object = JSON.parseObject(jsonString);
                 Object objArray = object.get("stations");
                 String str = objArray+"";
-                mChannelList = (ArrayList<ChannelData>) JSON.parseArray(str, ChannelData.class);
+                mChannelList = JSON.parseArray(str, ChannelData.class);
                 Log.d(TAG,  mChannelList.size() +" stations loaded from server.");
 
                 // Send Message to Main thread to load the station list
@@ -943,6 +953,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
+                            loadingDialog.dismissDialog();
                             Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
                             toast.setGravity(Gravity.CENTER, 0, 0);
                             toast.show();
@@ -1144,6 +1155,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
+                            loadingDialog.dismissDialog();
                             Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
                             toast.setGravity(Gravity.CENTER, 0, 0);
                             toast.show();
@@ -1151,6 +1163,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     });
                 }
             }
+
             isLoading = false;
         }
 
@@ -1296,6 +1309,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
+                        loadingDialog.dismissDialog();
                         Toast toast = Toast.makeText(getApplicationContext(), mChannelList.size() +" channels added.", Toast.LENGTH_LONG);
                         toast.setGravity(Gravity.CENTER, 0, 0);
                         toast.show();

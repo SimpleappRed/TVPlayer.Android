@@ -4,4 +4,5 @@
     <string name="iptv_station_list2">https://gitee.com/cy8018/Resources/raw/master/tv/channels.json.gz</string>
     <string name="iptv_station_list">https://github.com/cy8018/Resources/raw/master/tv/channels.json.gz</string>
     <string name="search_hint">Name/Country/Language...</string>
+    <string name="loading_channels">Loading channels, please wait...</string>
 </resources>

@@ -598,7 +598,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         String logoUrl = channel.logo;
         if (logoUrl == null || logoUrl.isEmpty())
         {
-            imageCurrentChannelLogo.setImageResource(getResources().getIdentifier("@drawable/tv_transparent", null, getPackageName()));
+            imageCurrentChannelLogo.setImageResource(getResources().getIdentifier("@drawable/tv_logo_trans", null, getPackageName()));
         }
         else
         {

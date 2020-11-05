@@ -30,11 +30,11 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
     private int selectedPos = RecyclerView.NO_POSITION;
 
-    private String selectedName = "";
+    private final String selectedName = "";
 
-    private List<ChannelData> mChannelList;
+    private final List<ChannelData> mChannelList;
     private List<ChannelData> mChannelListFull;
-    private Context mContext;
+    private final Context mContext;
 
     ChannelListAdapter(Context context, List<ChannelData> channelList) {
         this.mContext = context;
@@ -67,7 +67,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         String logoUrl = mChannelList.get(position).logo;
 
         if (logoUrl == null || logoUrl.isEmpty()) {
-            holder.stationLogo.setImageResource(mContext.getResources().getIdentifier("@drawable/tv_transparent", null, mContext.getPackageName()));
+            holder.stationLogo.setImageResource(mContext.getResources().getIdentifier("@drawable/tv_logo_trans", null, mContext.getPackageName()));
         }
         else {
             if (!logoUrl.toLowerCase().contains("http")) {
@@ -149,7 +149,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         return filter;
     }
 
-    private Filter filter = new Filter() {
+    private final Filter filter = new Filter() {
         @Override
         protected FilterResults performFiltering(CharSequence constraint) {
             List<ChannelData> filteredList = new ArrayList<>();

@@ -7,7 +7,7 @@ android {
         applicationId "com.cy8018.tvplayer"
         minSdkVersion 17
         targetSdkVersion 29
-        versionCode 9
+        versionCode 10
         versionName "2.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

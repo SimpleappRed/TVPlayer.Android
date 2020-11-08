@@ -14,7 +14,7 @@
         android:textSize="18sp"
         android:layout_gravity="center"
         android:gravity="center"
-        android:text="No channel found, please load channels via 'Settings' menu."
+        android:text="@string/no_channel"
         />
     <EditText
         android:id="@+id/search_bar"

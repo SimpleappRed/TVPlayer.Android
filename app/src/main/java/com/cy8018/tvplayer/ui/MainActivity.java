@@ -96,11 +96,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     public static List<ChannelData> mChannelList;
 
     private ChannelData mCurrentChannel;
-
     private int mCurrentChannelIndex;
-
     private int mCurrentSourceIndex;
-
     public final MsgHandler mHandler = new MsgHandler(this);
 
     // message to load the station list
@@ -135,19 +132,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private BottomNavigationView bottomNav;
     public Fragment selectedFragment;
     private View appTitleBar, nowPlayingBarHome;
+    public LoadingDialog loadingDialog;
 
     private int nowPlayingBarHomeHeight = 0;
-
     private long lastTotalRxBytes = 0;
     private long lastTimeStamp = 0;
     protected boolean isBuffering = false;
 
-    public LoadingDialog loadingDialog;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -155,10 +148,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Log.d(TAG, "onCreate: ");
 
-
         loadingDialog = new LoadingDialog(this);
 
-        // Produces DataSource instances through which media data is loaded.
+//        Produces DataSource instances through which media data is loaded.
 //        dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
 
         dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getString(R.string.app_name)),
@@ -257,9 +249,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentSourceIndex = data.getCurrentSourceIndex();
             mCurrentChannelIndex = data.getCurrentChannelIndex();
             mCurrentChannel = data.getCurrentChannel();
-//            if (mChannelList != null) {
-//                mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
-//            }
 
             setCurrentPlayInfo(mCurrentChannel);
             textCurrentChannelSource.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));

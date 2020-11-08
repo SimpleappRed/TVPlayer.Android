@@ -61,7 +61,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="cursive"
                         android:gravity="center"
-                        android:text="TV Player"
+                        android:text="@string/app_name"
                         android:textAlignment="center"
                         android:textColor="@color/colorWhite"
                         android:textSize="28sp"/>
@@ -71,7 +71,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:paddingEnd="4dp"
-                        android:text=" V2.0"
+                        android:text="@string/app_version"
                         android:textStyle="italic"
                         android:textAlignment="center"
                         android:textSize="27sp"
@@ -85,7 +85,7 @@
                     android:gravity="center"
                     android:layout_marginTop="8dp"
                     android:paddingEnd="3dp"
-                    android:text="Android IPTV Player"
+                    android:text="@string/app_description"
                     android:maxLines="1"
                     android:textStyle="italic"
                     android:textAlignment="center"
@@ -100,7 +100,7 @@
                     android:gravity="start"
                     android:textSize="13sp"
                     android:textColor="@color/colorWhite"
-                    android:text="cy3118018@gmail.com ©2020"
+                    android:text="@string/email_copyright"
                     />
             </LinearLayout>
 
@@ -226,7 +226,7 @@
                 android:layout_gravity="left"
                 android:layout_marginStart="20dp"
                 android:layout_marginEnd="15dp"
-                android:text="Load channels from M3U playlist "
+                android:text="@string/loading_channel_from_m3u"
                 android:textStyle="italic"
                 android:textAlignment="center"
                 android:textSize="16sp"/>
@@ -246,7 +246,7 @@
                 android:background="@drawable/search_bg"
                 android:drawableStart="@drawable/ic_link"
                 android:ems="10"
-                android:hint=" M3U Playlist URL"
+                android:hint="@string/loading_channel_hint"
                 android:inputType="textPersonName"
                 android:padding="8dp"/>
             <Button
@@ -331,7 +331,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Note: This App doesn't provide any TV sources. You need to add a playlist from your IPTV provider to watch live TV channels."
+            android:text="@string/notice"
             android:textColor="@color/colorDarkGray"
             android:textSize="11sp" />
     </LinearLayout>

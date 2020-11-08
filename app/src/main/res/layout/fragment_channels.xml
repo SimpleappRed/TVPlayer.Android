@@ -4,16 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/colorWhite"
     >
     <TextView
         android:id="@+id/no_channel_text"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginHorizontal="20dp"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:layout_gravity="center"
         android:gravity="center"
-        android:text="There is no channel yet, please load channels via the 'Settings' menu."
+        android:text="No channel found, please load channels via 'Settings' menu."
         />
     <EditText
         android:id="@+id/search_bar"

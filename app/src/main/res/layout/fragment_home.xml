@@ -7,11 +7,11 @@
         android:id="@+id/no_fav_channel_text"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginHorizontal="20dp"
-        android:textSize="20sp"
+        android:layout_marginHorizontal="15dp"
+        android:textSize="15sp"
         android:layout_gravity="center"
         android:gravity="center"
-        android:text="There is no favorites channel yet, please add to favorites by clicking the star icon to the right of the channel name."
+        android:text="No favorites channel yet. Add to favorites by clicking the star icon besides the channel name."
         />
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/channel_list_favorite"

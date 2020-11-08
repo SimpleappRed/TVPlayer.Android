@@ -81,7 +81,15 @@ public class SettingsFragment extends Fragment {
         loadDefaultBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.tv_channel_list));
+                if (channelsCount.getText() == "0") {
+                    ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.tv_channel_list));
+                }
+                else
+                {
+                    Toast toast= Toast.makeText(getContext(), "Please remove all channels before loading sample channels.", Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER, 0, 0);
+                    toast.show();
+                }
             }
         });
 

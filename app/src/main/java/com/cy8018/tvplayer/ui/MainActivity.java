@@ -6,22 +6,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.pm.ActivityInfo;
 import android.net.TrafficStats;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +25,6 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -69,7 +64,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
 import okhttp3.OkHttpClient;
@@ -1021,12 +1015,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     }
                 });
 
-                return getJsonString2(getResources().getString(R.string.iptv_station_list2));
+                return getJsonStringBackup(getResources().getString(R.string.tv_channel_list_backup));
             }
         }
 
         @Nullable
-        private String getJsonString2(String url) {
+        private String getJsonStringBackup(String url) {
             String jsonData = null;
             try {
                 InputStream stream = null;

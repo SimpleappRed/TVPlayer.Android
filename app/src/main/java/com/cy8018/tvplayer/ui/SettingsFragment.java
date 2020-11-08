@@ -81,10 +81,7 @@ public class SettingsFragment extends Fragment {
         loadDefaultBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                Toast toast= Toast.makeText(getContext(), "Loading channels, please wait...", Toast.LENGTH_LONG);
-//                toast.setGravity(Gravity.CENTER, 0, 0);
-//                toast.show();
-                ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.iptv_station_list));
+                ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.tv_channel_list));
             }
         });
 

@@ -81,7 +81,12 @@ public class SettingsFragment extends Fragment {
         loadDefaultBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (channelsCount.getText() == "0") {
+                int channelCount = 0;
+                if (((MainActivity)getActivity()).getChannelList() != null){
+                    channelCount = ((MainActivity)getActivity()).getChannelList().size();
+                }
+
+                if (channelCount == 0) {
                     ((MainActivity)getActivity()).loadChannelList(getResources().getString(R.string.tv_channel_list));
                 }
                 else

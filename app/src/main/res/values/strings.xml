@@ -13,7 +13,7 @@
     <string name="search_hint"> Name/Country/Language…</string>
     <string name="loading_channel_hint"> M3U Playlist URL</string>
     <string name="loading_channel_from_m3u">Load channels from M3U playlist </string>
-    <string name="no_channel">No channel found, please load channels via \'Settings\' menu.</string>
+    <string name="no_channel">No channel found, please load channels via Settings ⚙ menu.</string>
     <string name="no_favorites">No favorites channel yet. Add to favorites by clicking the ⭐ icon besides the channel name.</string>
     <string name="notice">Note: This App doesn\'t provide any TV sources. You need to add a playlist from your IPTV provider to watch live TV channels.</string>
 </resources>

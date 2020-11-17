@@ -25,6 +25,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -121,8 +123,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     protected ImageView imageCurrentChannelLogo;
     private BottomNavigationView bottomNav;
     public Fragment selectedFragment;
-    private View appTitleBar, nowPlayingBar;
+    private View appTitleBar, nowPlayingBar, mediaFrame;
     public LoadingDialog loadingDialog;
+
+    private Animation slideInTopAnim;
+    private Animation slideOutTopAnim;
 
     private RequestBuilder<PictureDrawable> requestBuilder;
 
@@ -159,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS * 2,
                 true);
 
+        mediaFrame = findViewById(R.id.media_frame);
         bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnNavigationItemSelectedListener(navListener);
         bottomNav.setSelectedItemId(R.id.nav_home);
@@ -170,6 +176,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         countryFlag = findViewById(R.id.imageCountryFlag);
         channelInfo = findViewById(R.id.textChannelInfo);
         isFavorite = findViewById(R.id.favorite_icon);
+
+        slideInTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_top);
+        slideOutTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_top);
 
         textCurrentChannelName = findViewById(R.id.textCurrentChannelName);
         textChannelNameOverlay = findViewById(R.id.channel_name);
@@ -199,6 +208,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                         break;
                     case PlaybackStatus.PLAYING:
                         stopPlaying();
+                        //mediaFrame.startAnimation(slideOutTopAnim);
+                        //mediaFrame.setVisibility(View.GONE);
+                        //hideNowPlayingBar();
                         break;
                     default:
                 }
@@ -276,8 +288,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentChannel = data.getCurrentChannel();
 
             setCurrentPlayInfo(mCurrentChannel);
-
-
             setAppTitleBarPlayingInfo();
         }
 
@@ -336,8 +346,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             new BottomNavigationView.OnNavigationItemSelectedListener() {
                 @Override
                 public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                    View frameView = findViewById(R.id.media_frame);
-                    ViewGroup.LayoutParams frameLayout = frameView.getLayoutParams();
+                    ViewGroup.LayoutParams frameLayout = mediaFrame.getLayoutParams();
 
                     switch (item.getItemId()) {
                         case R.id.nav_home:
@@ -345,27 +354,23 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
                             selectedFragment = new HomeFragment();
-                            frameLayout.height = (int)(frameView.getWidth()*0.5625);
-                            frameView.setLayoutParams(frameLayout);
-                            frameView.setVisibility(View.VISIBLE);
+                            frameLayout.height = (int)(mediaFrame.getWidth()*0.5625);
+                            mediaFrame.setLayoutParams(frameLayout);
+                            mediaFrame.setVisibility(View.VISIBLE);
                             break;
                         case R.id.nav_channels:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
                             selectedFragment = new ChannelsFragment();
-                            frameLayout.height = 1;
-                            frameView.setLayoutParams(frameLayout);
-                            frameView.setVisibility(View.INVISIBLE);
+                            mediaFrame.setVisibility(View.GONE);
                             break;
                         case R.id.nav_setting:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
                             selectedFragment = new SettingsFragment();
-                            frameLayout.height = 1;
-                            frameView.setLayoutParams(frameLayout);
-                            frameView.setVisibility(View.INVISIBLE);
+                            mediaFrame.setVisibility(View.GONE);
                             break;
                     }
                     getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
@@ -730,6 +735,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return getSourceInfo(mCurrentChannel, mCurrentSourceIndex);
     }
 
+    public void clearCurrentChannel() {
+        mCurrentChannel = null;
+        mCurrentChannelIndex = 0;
+        mCurrentSourceIndex = 0;
+    }
+
     public ChannelData findChannelByName(String name) {
         ChannelData channel = null;
         for (Object s : mChannelList) {
@@ -741,12 +752,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return channel;
     }
 
+    private void hideNowPlayingBar() {
+        if (mCurrentChannel != null) {
+            if (nowPlayingBar.getVisibility() == View.VISIBLE) {
+                nowPlayingBar.startAnimation(slideOutTopAnim);
+                nowPlayingBar.setVisibility(View.GONE);
+            }
+        }
+    }
+
     private void setAppTitleBarPlayingInfo() {
         if (mCurrentChannel != null) {
-//            if (appTitleBar.getVisibility() == View.VISIBLE) {
-//                appTitleBar.setVisibility(View.GONE);
-//            }
-
+            nowPlayingBar.startAnimation(slideInTopAnim);
             if (nowPlayingBar.getVisibility() == View.INVISIBLE || nowPlayingBar.getVisibility() == View.GONE) {
                 nowPlayingBar.setVisibility(View.VISIBLE);
             }
@@ -779,10 +796,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         player.prepare(buildMediaSource(uri));
         player.setPlayWhenReady(true);
     }
+
     protected void stopPlaying() {
-            if (player.isPlaying()) {
-                player.stop();
-            }
+        //clearCurrentChannel();
+        if (player.isPlaying()) {
+            player.stop();
+        }
     }
 
     public String getFlagResourceByCountry(@NotNull String country) {

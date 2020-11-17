@@ -2,6 +2,9 @@ package com.cy8018.tvplayer.ui;
 
 
 import android.content.Context;
+import android.graphics.drawable.PictureDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,12 +17,16 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.cy8018.tvplayer.R;
 import com.cy8018.tvplayer.db.AppDatabase;
 import com.cy8018.tvplayer.db.ChannelData;
+import com.cy8018.tvplayer.util.SvgSoftwareLayerSetter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +42,8 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
     private final List<ChannelData> mChannelList;
     private List<ChannelData> mChannelListFull;
     private final Context mContext;
+
+    private RequestBuilder<PictureDrawable> requestBuilder;
 
     ChannelListAdapter(Context context, List<ChannelData> channelList) {
         this.mContext = context;
@@ -70,19 +79,32 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
             holder.stationLogo.setImageResource(mContext.getResources().getIdentifier("@drawable/tv_logo_trans", null, mContext.getPackageName()));
         }
         else {
-            if (!logoUrl.toLowerCase().contains("http")) {
-                logoUrl = MainActivity.CurrentServerPrefix + "logo/" + logoUrl;
-            }
             // Load the station logo.
             Glide.with(mContext)
                     .asBitmap()
-                    .timeout(15000)
+                    .timeout(3000)
+                    .placeholder(R.drawable.tv_logo_trans)
+                    .error(R.drawable.tv_logo_trans)
                     .load(logoUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(holder.stationLogo);
         }
 
         if (mChannelList.get(position).countryCode != null && mChannelList.get(position).countryCode.length() > 0) {
-            holder.flag.setImageResource(mContext.getResources().getIdentifier("@drawable/"+ mChannelList.get(position).countryCode, null, mContext.getPackageName()));
+            String flagUrl = ((MainActivity)mContext).getFlagResourceByCountry(mChannelList.get(position).countryCode.toLowerCase());
+            if (flagUrl != null) {
+                requestBuilder =
+                        Glide.with(mContext)
+                                .as(PictureDrawable.class)
+                                //.placeholder(R.drawable.globe)
+                                .error(R.drawable.globe)
+                                .listener(new SvgSoftwareLayerSetter());
+
+                requestBuilder.load(Uri.parse(flagUrl)).into(holder.flag);
+            }
+        }
+        else {
+            holder.flag.setImageResource(mContext.getResources().getIdentifier("@drawable/globe", null, mContext.getPackageName()));
         }
 
         // Set the station title
@@ -106,6 +128,28 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
                 }
             }
         });
+
+        String desc = "";
+
+        if (mChannelList.get(position).countryName != null && mChannelList.get(position).countryName.trim().length() > 0) {
+            desc += mChannelList.get(position).countryName.trim();
+        }
+        if (mChannelList.get(position).languageName != null && mChannelList.get(position).languageName.trim().length() > 0) {
+            if (desc.length() > 0) {
+                desc += ", ";
+            }
+            desc += mChannelList.get(position).languageName.trim();
+        }
+        if (mChannelList.get(position).category != null && mChannelList.get(position).category.trim().length() > 0) {
+            if (desc.length() > 0) {
+                desc += ", ";
+            }
+            desc += mChannelList.get(position).category.trim();
+        }
+
+        if (desc.length() > 0) {
+            holder.description.setText(desc);
+        }
 
         // Set OnClickListener
         holder.parentLayout.setOnClickListener(new View.OnClickListener() {
@@ -134,6 +178,13 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         });
 
         holder.itemView.setSelected(selectedPos == position);
+
+        if (holder.itemView.isSelected()) {
+            holder.listItemBar.setBackgroundResource(R.drawable.card_view_bg_selected);
+        }
+        else  {
+            holder.listItemBar.setBackgroundResource(R.drawable.card_view_bg);
+        }
     }
 
     @Override
@@ -195,16 +246,22 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
     class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView stationTitle;
+        TextView stationTitle, description;
         ImageView stationLogo, isFavoriteIcon, flag;
         RelativeLayout parentLayout;
+        CardView listItemBar;
 
         private ViewHolder (View itemView) {
             super(itemView);
             stationTitle = itemView.findViewById(R.id.stationTitle);
+            description = itemView.findViewById(R.id.description);
             stationLogo = itemView.findViewById(R.id.logo);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                stationLogo.setClipToOutline(true);
+            }
             flag = itemView.findViewById(R.id.station_country_flag);
             isFavoriteIcon = itemView.findViewById(R.id.station_favorite_icon);
+            listItemBar = itemView.findViewById(R.id.list_item_bar);
             parentLayout = itemView.findViewById(R.id.parent_layout);
         }
     }

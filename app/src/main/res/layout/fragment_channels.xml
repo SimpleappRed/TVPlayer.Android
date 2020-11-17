@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/colorWhite"
+    android:background="@color/colorLightLightGrey"
     >
     <TextView
         android:id="@+id/no_channel_text"
@@ -35,6 +35,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/station_list_all"
         android:layout_width="match_parent"
+        android:scrollbars="vertical"
         android:layout_height="0dp"
         android:layout_weight="1"/>
 </LinearLayout>

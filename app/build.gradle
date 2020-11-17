@@ -38,17 +38,18 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
 
     // Fastjson
-    implementation 'com.alibaba:fastjson:1.2.73'
+    implementation 'com.alibaba:fastjson:1.2.75'
 
     // EXO Player
     implementation 'com.google.android.exoplayer:exoplayer:2.11.1'
 
-    // Okhttp (file read from URL)
-    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
-
     // Glide image download
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+
+    // Glide-svg
+    implementation 'com.github.qoqa:glide-svg:2.0.4'
+    //implementation 'com.caverock:androidsvg-aar:1.4'
 
     // Circle image
     implementation 'de.hdodenhof:circleimageview:3.1.0'
@@ -56,12 +57,15 @@ dependencies {
     // android-gif-drawable (Gif Loader)
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.19'
 
+    // Okhttp (file read from URL)
+    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
+
     // Room
     implementation "androidx.room:room-runtime:2.2.5"
     annotationProcessor "androidx.room:room-compiler:2.2.5"
 
     // Gson
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
 
     implementation 'com.android.support:multidex:1.0.3'
 }

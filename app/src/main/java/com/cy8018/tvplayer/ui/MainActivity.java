@@ -10,8 +10,10 @@ import androidx.fragment.app.FragmentManager;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.pm.ActivityInfo;
+import android.graphics.drawable.PictureDrawable;
 import android.net.TrafficStats;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,11 +33,14 @@ import android.widget.Toast;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.cy8018.tvplayer.R;
 import com.cy8018.tvplayer.db.AppDatabase;
 import com.cy8018.tvplayer.db.ChannelData;
 import com.cy8018.tvplayer.model.IptvStation;
 import com.cy8018.tvplayer.util.SimpleM3UParser;
+import com.cy8018.tvplayer.util.SvgSoftwareLayerSetter;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -78,14 +83,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private static final String TAG = "MainActivity";
 
-    private MessageListener mMessageListener;
-
-    // ServerPrefix address
-    public static final String ServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
-    public static final String ServerPrefixAlternative = "https://raw.githubusercontent.com/cy8018/Resources/master/tv/";
-
-    public static String CurrentServerPrefix = "https://gitee.com/cy8018/Resources/raw/master/tv/";
-
     // channel list
     public static List<ChannelData> mChannelList;
 
@@ -127,6 +124,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     public Fragment selectedFragment;
     private View appTitleBar, nowPlayingBarHome;
     public LoadingDialog loadingDialog;
+
+    private RequestBuilder<PictureDrawable> requestBuilder;
 
     private int nowPlayingBarHomeHeight = 0;
     private long lastTotalRxBytes = 0;
@@ -173,6 +172,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         textChannelNameOverlay = findViewById(R.id.channel_name);
         textSourceInfoOverlay = findViewById(R.id.source_info);
         imageCurrentChannelLogo = findViewById(R.id.imageCurrentChannelLogo);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            imageCurrentChannelLogo.setClipToOutline(true);
+        }
         textCurrentChannelSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
         textNetSpeed = findViewById(R.id.net_speed);
@@ -245,8 +247,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentChannel = data.getCurrentChannel();
 
             setCurrentPlayInfo(mCurrentChannel);
-            textCurrentChannelSource.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
-            textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
+
 
             setAppTitleBarPlayingInfo();
         }
@@ -578,6 +579,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void setCurrentPlayInfo(@NotNull ChannelData channel)
     {
+        mCurrentChannel = channel;
+        mCurrentChannelIndex = mChannelList.indexOf(channel);
+
         String logoUrl = channel.logo;
         if (logoUrl == null || logoUrl.isEmpty())
         {
@@ -585,20 +589,32 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         else
         {
-            if (!logoUrl.toLowerCase().contains("http"))
-            {
-                logoUrl = CurrentServerPrefix + "logo/" + logoUrl;
-            }
-            // Load the station logo.
+            // Load the channel logo.
             Glide.with(this)
                     .asBitmap()
-                    .timeout(10000)
+                    .timeout(3000)
+                    .placeholder(R.drawable.tv_logo_trans)
+                    .error(R.drawable.tv_logo_trans)
                     .load(logoUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(imageCurrentChannelLogo);
         }
 
         if (channel.countryCode != null && channel.countryCode.length() > 0) {
-            countryFlag.setImageResource(getResources().getIdentifier("@drawable/"+ channel.countryCode, null, getPackageName()));
+            String flagUrl = getFlagResourceByCountry(channel.countryCode.toLowerCase());
+            if (flagUrl != null) {
+                requestBuilder =
+                        Glide.with(this)
+                                .as(PictureDrawable.class)
+                                //.placeholder(R.drawable.globe)
+                                .error(R.drawable.globe)
+                                .listener(new SvgSoftwareLayerSetter());
+
+                requestBuilder.load(Uri.parse(flagUrl)).into(countryFlag);
+            }
+        }
+        else {
+            countryFlag.setImageResource(getResources().getIdentifier("@drawable/globe", null, getPackageName()));
         }
 
         if (channel.isFavorite) {
@@ -613,23 +629,22 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             String sChannelInfo = "";
             if (channel.countryName != null && channel.countryName.length() > 0) {
                 if (sChannelInfo.length() > 0) {
-                    sChannelInfo += " / ";
+                    sChannelInfo += ", ";
                 }
                 sChannelInfo += channel.countryName;
             }
             if (channel.languageName != null && channel.languageName.length() > 0) {
                 if (sChannelInfo.length() > 0) {
-                    sChannelInfo += " / ";
+                    sChannelInfo += ", ";
                 }
                 sChannelInfo += channel.languageName;
             }
             if (channel.category != null && channel.category.length() > 0) {
                 if (sChannelInfo.length() > 0) {
-                    sChannelInfo += " / ";
+                    sChannelInfo += ", ";
                 }
                 sChannelInfo += channel.category;
             }
-
 
             channelInfo.setText(sChannelInfo);
         }
@@ -638,6 +653,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         textChannelNameOverlay.setText(channel.name);
         textCurrentChannelName.setText(channel.name);
         textCurrentChannelName.setSelected(true);
+
+        String sourceInfo = getCurrentSourceInfo();
+        if (sourceInfo == null || sourceInfo.equals("1/1")) {
+            textCurrentChannelSource.setVisibility(View.GONE);
+            textSourceInfoOverlay.setVisibility(View.GONE);
+        }
+        else {
+            textCurrentChannelSource.setText(sourceInfo);
+            textSourceInfoOverlay.setText(sourceInfo);
+            textCurrentChannelSource.setVisibility(View.VISIBLE);
+            textSourceInfoOverlay.setVisibility(View.VISIBLE);
+        }
     }
 
     protected  void switchSource() {
@@ -694,13 +721,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void play(ChannelData channel, int source) {
         AppDatabase.getInstance(getApplicationContext()).channelDao().setLastSource(channel.name, source);
-        mCurrentChannel = channel;
-        mCurrentChannelIndex = mChannelList.indexOf(channel);
         mCurrentSourceIndex = source;
         setCurrentPlayInfo(channel);
-        textCurrentChannelSource.setText(getSourceInfo(channel, source));
-        textSourceInfoOverlay.setText(getSourceInfo(mCurrentChannel, mCurrentSourceIndex));
-
         setAppTitleBarPlayingInfo();
 
         play(channel.url.get(source));
@@ -720,6 +742,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         // Prepare the player with the source.
         player.prepare(buildMediaSource(uri));
         player.setPlayWhenReady(true);
+    }
+
+    public String getFlagResourceByCountry(@NotNull String country) {
+        String resource = null;
+        if (country != null && country.trim().length() > 0) {
+            resource = getResources().getString(R.string.country_flags_url) + country.trim() + getResources().getString(R.string.country_flags_file_extension);
+        }
+        else
+        {
+            resource = "@drawable/globe";
+        }
+        return resource;
     }
 
     public boolean removeAllChannels() {
@@ -801,55 +835,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
         }
     };
-
-    public class LoadListThread extends Thread {
-
-        private final String serverPrefix;
-
-        LoadListThread(String serverPrefix) {
-            this.serverPrefix = serverPrefix;
-        }
-
-        @Override
-        public void run() {
-
-            if (serverPrefix == null || serverPrefix.length() < 1) {
-                return;
-            }
-
-            String jsonString = getJsonString(serverPrefix + getResources().getString(R.string.station_list_file_name));
-            if (null != jsonString && (mChannelList == null || mChannelList.size() == 0))
-            {
-                CurrentServerPrefix = serverPrefix;
-                JSONObject object = JSON.parseObject(jsonString);
-                Object objArray = object.get("stations");
-                String str = objArray+"";
-                mChannelList = JSON.parseArray(str, ChannelData.class);
-                Log.d(TAG,  mChannelList.size() +" stations loaded from server.");
-
-                // Send Message to Main thread to load the station list
-                mHandler.sendEmptyMessage(MSG_LOAD_LIST);
-            }
-        }
-
-        @Nullable
-        private String getJsonString(String url) {
-            try {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url(url).build();
-                Response responses = client.newCall(request).execute();
-                assert responses.body() != null;
-                String jsonData = responses.body().string();
-                Log.d(TAG, "getJsonString: [" + jsonData + "]");
-
-                return jsonData;
-            } catch (Exception e) {
-                e.printStackTrace();
-                Log.e(TAG, "Exception when loading station list: " + e.getMessage());
-            }
-            return null;
-        }
-    }
 
     public class LoadIptvListThread extends Thread {
 

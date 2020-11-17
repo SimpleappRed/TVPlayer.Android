@@ -31,7 +31,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -115,22 +114,30 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
     private RetainedFragment dataFragment;
 
-    private TextView textCurrentChannelSource, textBufferingInfo, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay, textCurrentChannelName;
+    private TextView textCurrentChannelSource, textBufferingInfo, textNowPlayingNetSpeed, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay, textCurrentChannelName;
     private TextView channelInfo;
     private ImageView countryFlag, isFavorite;
-    protected GifImageView imageLoading;
+    protected GifImageView imageLoading, imagePlayBtn;
     protected ImageView imageCurrentChannelLogo;
     private BottomNavigationView bottomNav;
     public Fragment selectedFragment;
-    private View appTitleBar, nowPlayingBarHome;
+    private View appTitleBar, nowPlayingBar;
     public LoadingDialog loadingDialog;
 
     private RequestBuilder<PictureDrawable> requestBuilder;
 
-    private int nowPlayingBarHomeHeight = 0;
     private long lastTotalRxBytes = 0;
     private long lastTimeStamp = 0;
     protected boolean isBuffering = false;
+
+    protected int mPlaybackStatus;
+    static class PlaybackStatus {
+        static final int IDLE = 0;
+        static final int LOADING = 1;
+        static final int PLAYING = 2;
+        static final int PAUSED = 3;
+        static final int STOPPED = 4;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,12 +164,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         bottomNav.setSelectedItemId(R.id.nav_home);
 
         appTitleBar = findViewById(R.id.appTitleBar);
-        nowPlayingBarHome = findViewById(R.id.nowPlayingBarHome);
-        ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
-        nowPlayingBarHomeHeight = nowPlayingBarHomeLayout.height;
-        nowPlayingBarHomeLayout.height = 1;
-        nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
-        nowPlayingBarHome.setVisibility(View.INVISIBLE);
+        nowPlayingBar = findViewById(R.id.now_playing_bar);
+        nowPlayingBar.setVisibility(View.GONE);
 
         countryFlag = findViewById(R.id.imageCountryFlag);
         channelInfo = findViewById(R.id.textChannelInfo);
@@ -177,7 +180,33 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         textCurrentChannelSource = findViewById(R.id.textCurrentStationSource);
         textBufferingInfo = findViewById(R.id.textBufferingInfo);
+        textNowPlayingNetSpeed = findViewById(R.id.textNowPlayingNetSpeed);
         textNetSpeed = findViewById(R.id.net_speed);
+        imagePlayBtn = findViewById(R.id.imagePlayBtn);
+        imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/play", null, getPackageName()));
+        imagePlayBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Log.d(TAG, "OnClickListener mPlaybackStatus: " + mPlaybackStatus);
+
+                switch (mPlaybackStatus) {
+                    case PlaybackStatus.IDLE:
+                    case PlaybackStatus.PAUSED:
+                        if (null != mCurrentChannel && !mCurrentChannel.url.isEmpty()) {
+                            play(mCurrentChannel.url.get(mCurrentSourceIndex));
+                        }
+                        break;
+                    case PlaybackStatus.PLAYING:
+                        stopPlaying();
+                        break;
+                    default:
+                }
+            }
+
+
+        });
+
         imageLoading = findViewById(R.id.imageLoading);
         imageLoading.setImageResource(getResources().getIdentifier("@drawable/loading_pin", null, getPackageName()));
         imageLoading.setVisibility(View.INVISIBLE);
@@ -200,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
         });
 
-        nowPlayingBarHome.setOnClickListener(new View.OnClickListener() {
+        nowPlayingBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (bottomNav.getSelectedItemId() != R.id.nav_home) {
@@ -373,16 +402,29 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         Log.d(TAG, "onPlayerStateChanged: playWhenReady:"+ playWhenReady + " playbackState:" + playbackState);
         switch (playbackState) {
             case Player.STATE_BUFFERING:
+                mPlaybackStatus = PlaybackStatus.LOADING;
+                imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/loading_circle", null, getPackageName()));
                 showBufferingInfo();
                 break;
             case Player.STATE_ENDED:
+                mPlaybackStatus = PlaybackStatus.STOPPED;
+                imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/play", null, getPackageName()));
                 hideBufferingInfo();
                 break;
             case Player.STATE_READY:
+                mPlaybackStatus = playWhenReady ? PlaybackStatus.PLAYING : PlaybackStatus.PAUSED;
+                if (mPlaybackStatus ==PlaybackStatus.PLAYING) {
+                    imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/stop", null, getPackageName()));
+                }
+                else {
+                    imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/play", null, getPackageName()));
+                }
                 hideBufferingInfo();
                 break;
             case Player.STATE_IDLE:
             default:
+                mPlaybackStatus = PlaybackStatus.IDLE;
+                imagePlayBtn.setImageResource(getResources().getIdentifier("@drawable/play", null, getPackageName()));
                 hideBufferingInfo();
                 break;
         }
@@ -392,10 +434,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         imageLoading.setVisibility(View.INVISIBLE);
         isBuffering = false;
         textBufferingInfo.setText("");
+        textNowPlayingNetSpeed.setVisibility(View.GONE);
     }
 
     private void showBufferingInfo () {
         isBuffering = true;
+        textNowPlayingNetSpeed.setVisibility(View.VISIBLE);
         imageLoading.setVisibility(View.VISIBLE);
     }
 
@@ -699,18 +743,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private void setAppTitleBarPlayingInfo() {
         if (mCurrentChannel != null) {
-            if (appTitleBar.getVisibility() == View.VISIBLE) {
-                ViewGroup.LayoutParams layout = appTitleBar.getLayoutParams();
-                layout.height = 1;
-                appTitleBar.setLayoutParams(layout);
-                appTitleBar.setVisibility(View.INVISIBLE);
-            }
+//            if (appTitleBar.getVisibility() == View.VISIBLE) {
+//                appTitleBar.setVisibility(View.GONE);
+//            }
 
-            if (nowPlayingBarHome.getVisibility() == View.INVISIBLE) {
-                ViewGroup.LayoutParams nowPlayingBarHomeLayout = nowPlayingBarHome.getLayoutParams();
-                nowPlayingBarHomeLayout.height = nowPlayingBarHomeHeight;
-                nowPlayingBarHome.setLayoutParams(nowPlayingBarHomeLayout);
-                nowPlayingBarHome.setVisibility(View.VISIBLE);
+            if (nowPlayingBar.getVisibility() == View.INVISIBLE || nowPlayingBar.getVisibility() == View.GONE) {
+                nowPlayingBar.setVisibility(View.VISIBLE);
             }
 
             if (bottomNav.getSelectedItemId() != R.id.nav_home) {
@@ -735,13 +773,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void play(String url) {
         Uri uri = Uri.parse(url);
-        if (player.isPlaying()) {
-            player.stop();
-        }
+        stopPlaying();
 
         // Prepare the player with the source.
         player.prepare(buildMediaSource(uri));
         player.setPlayWhenReady(true);
+    }
+    protected void stopPlaying() {
+            if (player.isPlaying()) {
+                player.stop();
+            }
     }
 
     public String getFlagResourceByCountry(@NotNull String country) {
@@ -818,6 +859,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         {
             String netSpeed = getNetSpeedText(getNetSpeed());
             textNetSpeed.setText(netSpeed);
+            textNowPlayingNetSpeed.setText(netSpeed);
             Log.i(TAG, netSpeed);
         }
     }

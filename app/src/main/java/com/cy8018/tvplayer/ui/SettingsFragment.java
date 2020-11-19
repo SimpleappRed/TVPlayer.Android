@@ -43,7 +43,7 @@ public class SettingsFragment extends Fragment {
         int channelCount = 0;
         int favChannelCount = 0;
         if (((MainActivity)getActivity()).getChannelList() != null){
-            channelCount = ((MainActivity)getActivity()).getChannelList().size();
+            channelCount = ((MainActivity)getActivity()).getTotalChannelCount();
         }
         if (((MainActivity)getActivity()).getChannelListFavorites() != null){
             favChannelCount = ((MainActivity)getActivity()).getChannelListFavorites().size();

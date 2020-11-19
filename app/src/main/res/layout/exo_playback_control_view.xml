@@ -1,85 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/control_overlay"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
     android:layoutDirection="ltr"
     android:background="#CC000000"
-    android:layout_weight="10"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:paddingVertical="10dp"
+        android:layout_height="42dp"
+        android:layout_marginVertical="2dp"
         android:layout_gravity="center"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:layout_weight="10"
         >
+        <pl.droidsonroids.gif.GifImageView
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="5dp"
+            android:id="@+id/play_button_overlay"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/play_overlay"
+            />
         <TextView
-            android:id="@+id/net_speed"
-            android:layout_width="0dp"
+            android:id="@+id/net_speed_overlay"
+            android:layout_width="52dp"
             android:layout_height="match_parent"
             android:layout_gravity="end|center_vertical"
             android:gravity="end|center_vertical"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:shadowColor="#000000"
-            android:shadowDx="3"
-            android:shadowDy="3"
-            android:shadowRadius="3"
-            android:layout_weight="2.2"
+            android:textColor="@color/colorLightGray"
+            android:textSize="11sp"
             />
         <TextView
-            android:id="@+id/channel_name"
+            android:id="@+id/channel_name_overlay"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:gravity="center"
             android:padding="2dp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/colorLightGray"
             android:textSize="20sp"
-            android:shadowColor="#000000"
-            android:shadowDx="3"
-            android:shadowDy="3"
-            android:shadowRadius="3"
-            android:layout_weight="5.8"
+            android:layout_weight="1"
             android:ellipsize="marquee"
             android:marqueeRepeatLimit="marquee_forever"
             android:singleLine="true"
             />
         <TextView
-            android:id="@+id/source_info"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical|end"
-            android:gravity="center_vertical|end"
-            android:textColor="#FFFFFF"
-            android:textSize="19sp"
-            android:shadowColor="#000000"
-            android:shadowDx="3"
-            android:shadowDy="3"
-            android:shadowRadius="3"
-            android:layout_weight="1.6"
-            />
-
-        <FrameLayout
-            android:id="@+id/exo_fullscreen_button"
+            android:id="@+id/source_info_overlay"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_gravity="center_vertical|end"
-            android:layout_weight="0.4">
-
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:textColor="@color/lightGrey"
+            android:textSize="19sp"
+            android:shadowColor="#000000"
+            />
+        <ImageView
+            android:id="@+id/fav_icon_overlay"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:padding="6dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/star_outline_overlay"
+            />
+        <FrameLayout
+            android:id="@+id/exo_fullscreen_button"
+            android:layout_width="41dp"
+            android:layout_height="41dp"
+            android:layout_gravity="center"
+            android:layout_marginEnd="5dp"
+            >
             <ImageView
                 android:id="@+id/exo_fullscreen_icon"
-                android:layout_width="33dp"
-                android:layout_height="33dp"
-                android:padding="5dp"
-                android:layout_marginEnd="10dp"
-                android:layout_gravity="center_vertical|end"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_fullscreen_expand" />
+                android:src="@drawable/fullscreen" />
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>

@@ -24,7 +24,7 @@
             android:paddingVertical="3dp"
             >
             <ImageView
-                android:id="@+id/logo"
+                android:id="@+id/channel_logo_list_item"
                 android:layout_margin="5dp"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -41,7 +41,7 @@
                 android:layout_gravity="center"
                 android:orientation="vertical">
                 <TextView
-                    android:id="@+id/stationTitle"
+                    android:id="@+id/channel_name_list_item"
                     android:layout_width="match_parent"
                     android:layout_marginHorizontal="2dp"
                     android:height="26dp"
@@ -54,7 +54,7 @@
                     android:marqueeRepeatLimit="marquee_forever"
                     />
                 <TextView
-                    android:id="@+id/description"
+                    android:id="@+id/channel_description_list_item"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginStart="2dp"
@@ -69,7 +69,7 @@
                     />
             </LinearLayout>
             <ImageView
-                android:id="@+id/station_favorite_icon"
+                android:id="@+id/fav_icon_list_item"
                 android:layout_width="35dp"
                 android:layout_height="35dp"
                 android:layout_gravity="center"
@@ -77,7 +77,7 @@
                 android:layout_marginEnd="12dp"
                 />
             <ImageView
-                android:id="@+id/station_country_flag"
+                android:id="@+id/country_flag_list_item"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:layout_gravity="center"

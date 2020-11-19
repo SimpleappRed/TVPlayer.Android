@@ -9,7 +9,7 @@
     tools:context=".ui.MainActivity">
 
     <LinearLayout
-        android:id="@+id/appTitleBar"
+        android:id="@+id/app_title_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,14 +57,14 @@
             android:gravity="center"
             >
             <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/current_channel_logo_ball"
+                android:id="@+id/channel_logo_ball"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:layout_gravity="center"
                 android:gravity="center"/>
 
             <pl.droidsonroids.gif.GifImageView
-                android:id="@+id/imagePlayBtnBall"
+                android:id="@+id/play_button_ball"
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:layout_width="match_parent"
@@ -73,7 +73,7 @@
                 />
 
             <TextView
-                android:id="@+id/textNowPlayingNetSpeedBall"
+                android:id="@+id/net_speed_ball"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -93,7 +93,7 @@
         android:background="@color/colorLightLightGray"
         app:cardCornerRadius="25dp"
         app:cardElevation="3dp"
-        app:layout_constraintTop_toBottomOf="@+id/appTitleBar"
+        app:layout_constraintTop_toBottomOf="@+id/app_title_bar"
         app:layout_constraintBottom_toTopOf="@id/media_frame"
         android:orientation="horizontal">
 
@@ -117,15 +117,14 @@
                     android:layout_height="40dp"
                     >
                     <pl.droidsonroids.gif.GifImageView
-                        android:id="@+id/imagePlayBtn"
+                        android:id="@+id/play_button_bar"
                         android:layout_gravity="center"
                         android:gravity="center"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingBottom="1dp"
                         />
                     <TextView
-                        android:id="@+id/textNowPlayingNetSpeed"
+                        android:id="@+id/net_speed_bar"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
@@ -134,7 +133,7 @@
                 </FrameLayout>
 
                 <ImageView
-                    android:id="@+id/imageCurrentChannelLogo"
+                    android:id="@+id/channel_logo_bar"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
                     android:layout_gravity="center"
@@ -152,7 +151,7 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <TextView
-                        android:id="@+id/textCurrentChannelName"
+                        android:id="@+id/channel_name_bar"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
@@ -176,18 +175,29 @@
                         android:textStyle="italic" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/textCurrentStationSource"
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/source_info_card_bar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="20sp"
-                    android:textStyle="bold|italic" />
+                    android:layout_marginEnd="8dp"
+                    android:elevation="2dp"
+                    app:cardCornerRadius="8dp"
+                    >
+                    <TextView
+                        android:id="@+id/source_info_bar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="5dp"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </androidx.cardview.widget.CardView>
+
 
                 <ImageView
-                    android:id="@+id/favorite_icon"
+                    android:id="@+id/fav_icon_bar"
                     android:layout_width="33dp"
                     android:layout_height="33dp"
                     android:layout_gravity="center"
@@ -195,7 +205,7 @@
                     android:gravity="center" />
 
                 <ImageView
-                    android:id="@+id/imageCountryFlag"
+                    android:id="@+id/country_flag_bar"
                     android:layout_width="37dp"
                     android:layout_height="37dp"
                     android:layout_gravity="center"
@@ -215,7 +225,7 @@
         app:layout_constraintDimensionRatio="16:9"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appTitleBar">
+        app:layout_constraintTop_toBottomOf="@+id/app_title_bar">
         <com.google.android.exoplayer2.ui.PlayerView
             android:id="@+id/video_view"
             android:layout_width="match_parent"
@@ -226,25 +236,71 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:orientation="vertical">
-            <pl.droidsonroids.gif.GifImageView
-                android:id="@+id/imageLoading"
-                android:layout_width="45dp"
-                android:layout_height="45dp"
-                android:layout_gravity="center"
-                android:paddingBottom="10dp" />
+
             <TextView
-                android:id="@+id/textBufferingInfo"
+                android:id="@+id/channel_name_media_frame"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
+                android:textColor="@color/colorLightGray"
+                android:padding="5dp"
+                android:textSize="22sp"
+                android:textStyle="normal"
                 android:shadowColor="#000000"
                 android:shadowDx="3"
                 android:shadowDy="3"
                 android:shadowRadius="3"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="normal" />
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"/>
+
+            <pl.droidsonroids.gif.GifImageView
+                android:id="@+id/loading_pic_media_frame"
+                android:layout_width="150dp"
+                android:layout_height="25dp"
+                android:layout_gravity="center"
+                android:gravity="center" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center"
+                android:gravity="center">
+                <TextView
+                    android:id="@+id/net_speed_media_frame"
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|end"
+                    android:layout_gravity="center"
+                    android:textColor="@color/colorLightGray"
+                    android:textSize="18sp"
+                    android:layout_marginStart="-45dp"
+                    android:layout_marginEnd="2dp"
+                    android:shadowColor="#000000"
+                    android:shadowDx="3"
+                    android:shadowDy="3"
+                    android:shadowRadius="3"
+                    android:textStyle="normal"
+                    android:text=""/>
+                <TextView
+                    android:id="@+id/buffer_percentage_media_frame"
+                    android:layout_width="50dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical|end"
+                    android:layout_gravity="center"
+                    android:textColor="@color/colorLightGray"
+                    android:textSize="18sp"
+                    android:shadowColor="#000000"
+                    android:shadowDx="3"
+                    android:shadowDy="3"
+                    android:shadowRadius="3"
+                    android:text=""
+                    android:textStyle="normal" />
+            </LinearLayout>
+
+
         </LinearLayout>
     </FrameLayout>
     <View

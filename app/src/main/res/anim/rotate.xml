@@ -3,7 +3,7 @@
     android:shareInterpolator="false">
     <rotate
         android:interpolator="@android:anim/linear_interpolator"
-        android:duration="4000"
+        android:duration="5000"
         android:fillAfter="true"
         android:repeatCount="infinite"
         android:repeatMode="restart"

@@ -81,17 +81,14 @@ import pl.droidsonroids.gif.GifImageView;
 
 public class MainActivity extends AppCompatActivity implements Player.EventListener, AnalyticsListener {
 
-    public boolean isLoading = false;
-
     private static final String TAG = "MainActivity";
 
     // channel list
     public static List<ChannelData> mChannelList;
-
+    public static int gTotalChannelCount = 0;
     private ChannelData mCurrentChannel;
     private int mCurrentChannelIndex;
     private int mCurrentSourceIndex;
-    public final MsgHandler mHandler = new MsgHandler(this);
 
     // message to load the station list
     public static final int MSG_LOAD_LIST = 0;
@@ -102,7 +99,32 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     // message to get buffering info
     public static final int MSG_GET_BUFFERING_INFO = 2;
 
-    public static final int NOW_PLAYING_BAR_FADING_TIME = 6000;
+    // message to now playing bar
+    public static final int MSG_HIDE_NOW_PLAYING_BAR = 3;
+
+    public static final int NOW_PLAYING_BAR_FADING_TIME = 7000;
+
+    public static final int NET_SPEED_CHECK_INTERVAL = 1000;
+
+    private SimpleExoPlayer player;
+    private DataSource.Factory dataSourceFactory;
+
+    private RetainedFragment dataFragment;
+    public Fragment selectedFragment;
+    private Dialog mFullScreenDialog;
+    private PlayerView playerView;
+    public LoadingDialog loadingDialog;
+    private BottomNavigationView bottomNav;
+
+    private View appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, controlOverlay;
+    private TextView sourceInfoBar, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfo, channelNameMediaFrame;
+    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay;
+    protected GifImageView loadingPicMediaFrame, playButtonBar, playBtnBall, playButtonOverlay;
+    protected CircleImageView channelLogoBall;
+
+    private Animation slideInTopAnim, slideInLeftAnim, slideInLeftBarAnim, slideOutTopAnim, slideOutLeftAnim, slideOutLeftBarAnim, fadeOutAnim, fadeInAnim, rotateAnim;
+
+    private RequestBuilder<PictureDrawable> requestBuilder;
 
     private final String STATE_RESUME_WINDOW = "resumeWindow";
     private final String STATE_RESUME_POSITION = "resumePosition";
@@ -112,35 +134,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private long mResumePosition;
     private boolean mExoPlayerFullscreen = false;
 
-    private SimpleExoPlayer player;
-    private PlayerView playerView;
-    private ImageView mFullScreenIcon;
-    private Dialog mFullScreenDialog;
-    private DataSource.Factory dataSourceFactory;
-    private RetainedFragment dataFragment;
-
-    private TextView textCurrentChannelSource, textBufferingInfo, textNowPlayingNetSpeed, textNowPlayingNetSpeedBall, textNetSpeed, textSourceInfoOverlay, textChannelNameOverlay, textCurrentChannelName;
-    private TextView channelInfo;
-    private ImageView countryFlag, isFavorite;
-    protected GifImageView imageLoading, imagePlayBtn, imagePlayBtnBall;
-    protected CircleImageView currentChannelLogoBall;
-    protected ImageView imageCurrentChannelLogo;
-    private BottomNavigationView bottomNav;
-    public Fragment selectedFragment;
-    private View appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame;
-    public LoadingDialog loadingDialog;
-
-    private Animation slideInTopAnim;
-    private Animation slideInLeftAnim;
-    private Animation slideOutTopAnim;
-    private Animation slideOutLeftAnim;
-    private Animation rotateAnim;
-
-    private RequestBuilder<PictureDrawable> requestBuilder;
-
     private long lastTotalRxBytes = 0;
     private long lastTimeStamp = 0;
+    private long lastBarActiveTimeStamp = 0;
+
     protected boolean isBuffering = false;
+    public boolean isLoading = false;
+
+    protected static boolean isCheckingThreadRunning = false;
+
+    protected Thread checkingThread;
+
+    public final MsgHandler mHandler = new MsgHandler(this);
 
     protected int mPlaybackStatus;
     static class PlaybackStatus {
@@ -156,14 +161,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Log.d(TAG, "onCreate: ");
-
-        loadingDialog = new LoadingDialog(this);
-
-//        Produces DataSource instances through which media data is loaded.
-//        dataSourceFactory = new DefaultDataSourceFactory(this, Util.getUserAgent(this, getString(R.string.app_name)));
 
         dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getString(R.string.app_name)),
                 null,
@@ -171,135 +170,141 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS * 2,
                 true);
 
+
+        loadingDialog = new LoadingDialog(this);
+
+        // Animations
+        slideInTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_top);
+        slideInLeftAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_left);
+        slideInLeftBarAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_left_bar);
+        slideOutTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_top);
+        slideOutLeftAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_left);
+        slideOutLeftBarAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_left_bar);
+        fadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+        fadeInAnim = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+        rotateAnim = AnimationUtils.loadAnimation(this, R.anim.rotate);
+
+
+        // App Title Bar
+        appTitleBar = findViewById(R.id.app_title_bar);
+
+        // Control overlay
+        controlOverlay = findViewById(R.id.control_overlay);
+        controlOverlay.setVisibility(View.INVISIBLE);
+
+        // MediaFrame
         mediaFrame = findViewById(R.id.media_frame);
+        bufferPercentageMediaFrame = findViewById(R.id.buffer_percentage_media_frame);
+        netSpeedMediaFrame = findViewById(R.id.net_speed_media_frame);
+        loadingPicMediaFrame = findViewById(R.id.loading_pic_media_frame);
+        loadingPicMediaFrame.setImageResource(R.drawable.loading_wave);
+        loadingPicMediaFrame.setVisibility(View.INVISIBLE);
+        channelNameMediaFrame = findViewById(R.id.channel_name_media_frame);
+
+
+        // Bottom Navigation
         bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnNavigationItemSelectedListener(navListener);
         bottomNav.setSelectedItemId(R.id.nav_home);
 
-        currentChannelLogoBall = findViewById(R.id.current_channel_logo_ball);
-        currentChannelLogoBall.setVisibility(View.GONE);
-        currentChannelLogoBall.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
 
-                nowPlayingBall.setVisibility(View.GONE);
-                showNowPlayingBar();
-                switchToHome();
-            }
-        });
-
-        appTitleBar = findViewById(R.id.appTitleBar);
-        nowPlayingBar = findViewById(R.id.now_playing_bar);
-        nowPlayingBar.setVisibility(View.GONE);
-
+        // Now Playing Ball
         nowPlayingBall = findViewById(R.id.now_playing_ball);
         nowPlayingBall.setVisibility(View.GONE);
-
-        countryFlag = findViewById(R.id.imageCountryFlag);
-        channelInfo = findViewById(R.id.textChannelInfo);
-        isFavorite = findViewById(R.id.favorite_icon);
-
-        slideInTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_top);
-        slideInLeftAnim = AnimationUtils.loadAnimation(this, R.anim.slide_in_left);
-        slideOutTopAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_top);
-        slideOutLeftAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_left);
-        rotateAnim = AnimationUtils.loadAnimation(this, R.anim.rotate);
-
-        textCurrentChannelName = findViewById(R.id.textCurrentChannelName);
-        textChannelNameOverlay = findViewById(R.id.channel_name);
-        textSourceInfoOverlay = findViewById(R.id.source_info);
-        imageCurrentChannelLogo = findViewById(R.id.imageCurrentChannelLogo);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            imageCurrentChannelLogo.setClipToOutline(true);
-        }
-        textCurrentChannelSource = findViewById(R.id.textCurrentStationSource);
-        textBufferingInfo = findViewById(R.id.textBufferingInfo);
-        textNowPlayingNetSpeed = findViewById(R.id.textNowPlayingNetSpeed);
-
-        textNowPlayingNetSpeedBall = findViewById(R.id.textNowPlayingNetSpeedBall);
-
-        textNetSpeed = findViewById(R.id.net_speed);
-        imagePlayBtn = findViewById(R.id.imagePlayBtn);
-
-        imagePlayBtnBall = findViewById(R.id.imagePlayBtnBall);
-        imagePlayBtnBall.setOnClickListener(new View.OnClickListener() {
+        netSpeedBall = findViewById(R.id.net_speed_ball);
+        channelLogoBall = findViewById(R.id.channel_logo_ball);
+        channelLogoBall.setVisibility(View.GONE);
+        channelLogoBall.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                nowPlayingBall.setVisibility(View.GONE);
+                hideNowPlayingBall();
+                showNowPlayingBar();
+                switchToHome();
+            }
+        });
+        playBtnBall = findViewById(R.id.play_button_ball);
+        playBtnBall.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideNowPlayingBall();
                 showNowPlayingBar();
                 switchToHome();
             }
         });
 
-        imagePlayBtn.setImageResource(R.drawable.play);
-        imagePlayBtn.setOnClickListener(new View.OnClickListener() {
+
+        // Now Playing Bar
+        nowPlayingBar = findViewById(R.id.now_playing_bar);
+        nowPlayingBar.setVisibility(View.GONE);
+        playButtonBar = findViewById(R.id.play_button_bar);
+        countryFlagBar = findViewById(R.id.country_flag_bar);
+        channelInfo = findViewById(R.id.textChannelInfo);
+        favIconBar = findViewById(R.id.fav_icon_bar);
+        channelNameBar = findViewById(R.id.channel_name_bar);
+        channelLogoBar = findViewById(R.id.channel_logo_bar);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            channelLogoBar.setClipToOutline(true);
+        }
+        sourceInfoBar = findViewById(R.id.source_info_bar);
+        netSpeedBar = findViewById(R.id.net_speed_bar);
+        playButtonBar.setImageResource(R.drawable.play);
+        playButtonBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 Log.d(TAG, "OnClickListener mPlaybackStatus: " + mPlaybackStatus);
-
-                switch (mPlaybackStatus) {
-                    case PlaybackStatus.IDLE:
-                    case PlaybackStatus.PAUSED:
-                        if (null != mCurrentChannel && !mCurrentChannel.url.isEmpty()) {
-                            play(mCurrentChannel.url.get(mCurrentSourceIndex));
-                        }
-                        break;
-                    case PlaybackStatus.PLAYING:
-                        stopPlaying();
-                        //mediaFrame.startAnimation(slideOutTopAnim);
-                        //mediaFrame.setVisibility(View.GONE);
-                        //hideNowPlayingBar();
-                        break;
-                    default:
-                }
+                setLastBarActiveTimeStamp();
+                onPlayButtonTapped();
             }
 
 
         });
-
-        imageLoading = findViewById(R.id.imageLoading);
-        imageLoading.setImageResource(R.drawable.loading_pin);
-        imageLoading.setVisibility(View.INVISIBLE);
-        textChannelNameOverlay.setSelected(true);
-
-        isFavorite.setOnClickListener(new View.OnClickListener() {
+        favIconBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mCurrentChannel.isFavorite) {
-                    removeFromFavorites(mCurrentChannel.name);
-                    isFavorite.setImageResource(R.drawable.ic_star_outline);
-                } else {
-                    addToFavorites(mCurrentChannel.name);
-                    isFavorite.setImageResource(R.drawable.ic_star);
-                }
-
-                if (bottomNav.getSelectedItemId() == R.id.nav_home) {
-                    ((HomeFragment)selectedFragment).reloadList();
-                }
+                onCurrentFavIconTapped();
             }
         });
-
         nowPlayingBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (bottomNav.getSelectedItemId() != R.id.nav_home) {
-                    bottomNav.setSelectedItemId(R.id.nav_home);
-                }
+                switchToHome();
+                setLastBarActiveTimeStamp();
             }
         });
 
-        textCurrentChannelSource.setOnClickListener(new View.OnClickListener() {
+        sourceInfoBar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchSource();
+                setLastBarActiveTimeStamp();
+            }
+        });
+
+
+        // Control Overlay
+        playButtonOverlay = findViewById(R.id.play_button_overlay);
+        channelNameOverlay = findViewById(R.id.channel_name_overlay);
+        channelNameOverlay.setSelected(true);
+        sourceInfoOverlay = findViewById(R.id.source_info_overlay);
+        netSpeedOverlay = findViewById(R.id.net_speed_overlay);
+        favIconOverlay = findViewById(R.id.fav_icon_overlay);
+        sourceInfoOverlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switchSource();
             }
         });
-
-        textSourceInfoOverlay.setOnClickListener(new View.OnClickListener() {
+        favIconOverlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switchSource();
+                onCurrentFavIconTapped();
+            }
+        });
+        playButtonOverlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onPlayButtonTapped();
             }
         });
 
@@ -327,17 +332,52 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mCurrentChannel = data.getCurrentChannel();
 
             setCurrentPlayInfo(mCurrentChannel);
-            showNowPlayingBall();
+            showNowPlayingBall(true);
         }
 
         if (mChannelList == null || mChannelList.size() == 0) {
             mChannelList = AppDatabase.getInstance(getApplicationContext()).channelDao().getAll();
+            gTotalChannelCount = mChannelList.size();
         }
-        new Thread(networkCheckRunnable).start();
+
+        startCheckingThread();
     }
 
     public List<ChannelData> getChannelList() {
         return mChannelList;
+    }
+
+    private void onPlayButtonTapped() {
+        switch (mPlaybackStatus) {
+            case PlaybackStatus.IDLE:
+            case PlaybackStatus.PAUSED:
+                if (null != mCurrentChannel && !mCurrentChannel.url.isEmpty()) {
+                    play(mCurrentChannel.url.get(mCurrentSourceIndex));
+                }
+                break;
+            case PlaybackStatus.PLAYING:
+                stopPlaying();
+                break;
+            default:
+        }
+    }
+
+    private void onCurrentFavIconTapped() {
+        if (mCurrentChannel.isFavorite) {
+            removeFromFavorites(mCurrentChannel.name);
+            favIconBar.setImageResource(R.drawable.star_outline);
+            favIconOverlay.setImageResource(R.drawable.star_outline_overlay);
+        } else {
+            addToFavorites(mCurrentChannel.name);
+            favIconBar.setImageResource(R.drawable.star);
+            favIconOverlay.setImageResource(R.drawable.star_overlay);
+        }
+
+        setLastBarActiveTimeStamp();
+
+        if (bottomNav.getSelectedItemId() == R.id.nav_home) {
+            ((HomeFragment)selectedFragment).reloadList();
+        }
     }
 
     public void addToFavorites(String channelName) {
@@ -349,7 +389,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
         }
         if (mCurrentChannel != null && channelName.equals(mCurrentChannel.name)) {
-            isFavorite.setImageResource(R.drawable.ic_star);
+            favIconBar.setImageResource(R.drawable.star);
+            favIconOverlay.setImageResource(R.drawable.star_overlay);
         }
     }
 
@@ -362,7 +403,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
         }
         if (mCurrentChannel != null && channelName.equals(mCurrentChannel.name)) {
-            isFavorite.setImageResource(R.drawable.ic_star_outline);
+            favIconBar.setImageResource(R.drawable.star_outline);
+            favIconOverlay.setImageResource(R.drawable.star_outline_overlay);
         }
     }
 
@@ -379,6 +421,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public ChannelData getCurrentChannel() {
         return mCurrentChannel;
+    }
+
+    public int getTotalChannelCount() {
+        return gTotalChannelCount;
     }
 
     private final BottomNavigationView.OnNavigationItemSelectedListener navListener =
@@ -430,6 +476,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         dataFragment.setData(fragmentData);
 
         releasePlayer();
+
+        stopCheckingThread();
+
         super.onDestroy();
     }
 
@@ -447,62 +496,90 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         switch (playbackState) {
             case Player.STATE_BUFFERING:
                 mPlaybackStatus = PlaybackStatus.LOADING;
-                currentChannelLogoBall.clearAnimation();
-                currentChannelLogoBall.setVisibility(View.GONE);
-                imagePlayBtn.setVisibility(View.VISIBLE);
-                imagePlayBtnBall.setVisibility(View.VISIBLE);
-                imagePlayBtn.setImageResource(R.drawable.loading_circle);
-                imagePlayBtnBall.setImageResource(R.drawable.loading_circle);
+                channelLogoBall.clearAnimation();
+                channelLogoBall.setVisibility(View.GONE);
+                playButtonBar.setVisibility(View.VISIBLE);
+                playBtnBall.setVisibility(View.VISIBLE);
+                playButtonBar.setImageResource(R.drawable.loading_circle);
+                playBtnBall.setImageResource(R.drawable.loading_circle);
+                playButtonOverlay.setImageResource(R.drawable.loading_wave);
                 showBufferingInfo();
                 break;
             case Player.STATE_ENDED:
                 mPlaybackStatus = PlaybackStatus.STOPPED;
-                imagePlayBtn.setImageResource(R.drawable.play);
+                playButtonBar.setImageResource(R.drawable.play);
+                playButtonOverlay.setImageResource(R.drawable.play_overlay);
                 hideBufferingInfo();
                 break;
             case Player.STATE_READY:
                 mPlaybackStatus = playWhenReady ? PlaybackStatus.PLAYING : PlaybackStatus.PAUSED;
                 if (mPlaybackStatus == PlaybackStatus.PLAYING) {
-                    imagePlayBtnBall.setVisibility(View.GONE);
-                    currentChannelLogoBall.setVisibility(View.VISIBLE);
-                    currentChannelLogoBall.startAnimation(rotateAnim);
-                    imagePlayBtn.setImageResource(R.drawable.stop);
+                    playBtnBall.setVisibility(View.GONE);
+                    channelLogoBall.setVisibility(View.VISIBLE);
+                    channelLogoBall.startAnimation(rotateAnim);
+                    playButtonBar.setImageResource(R.drawable.pause);
+                    playButtonOverlay.setImageResource(R.drawable.pause_overlay);
                 }
                 else {
-                    currentChannelLogoBall.clearAnimation();
+                    channelLogoBall.clearAnimation();
 //                    currentChannelLogoBall.setVisibility(View.GONE);
 //                    imagePlayBtnBall.setVisibility(View.VISIBLE);
 //                    imagePlayBtnBall.setImageResource(R.drawable.play);
-                    imagePlayBtn.setImageResource(R.drawable.play);
+                    playButtonBar.setImageResource(R.drawable.play);
+                    playButtonOverlay.setImageResource(R.drawable.play_overlay);
                 }
                 hideBufferingInfo();
                 break;
             case Player.STATE_IDLE:
             default:
                 mPlaybackStatus = PlaybackStatus.IDLE;
-                currentChannelLogoBall.clearAnimation();
-//                currentChannelLogoBall.setVisibility(View.GONE);
-//                imagePlayBtnBall.setVisibility(View.VISIBLE);
-//                imagePlayBtnBall.setImageResource(R.drawable.play);
-                imagePlayBtn.setImageResource(R.drawable.play);
+
+                setCurrentPlayInfo();
+                channelLogoBall.clearAnimation();
+                channelLogoBall.setVisibility(View.VISIBLE);
+                if (playBtnBall.getVisibility() == View.VISIBLE) {
+                    playBtnBall.setVisibility(View.GONE);
+                }
+                playButtonBar.setImageResource(R.drawable.play);
+                playButtonOverlay.setImageResource(R.drawable.play_overlay);
                 hideBufferingInfo();
                 break;
         }
     }
 
     private  void hideBufferingInfo () {
-        imageLoading.setVisibility(View.INVISIBLE);
         isBuffering = false;
-        textBufferingInfo.setText("");
-        textNowPlayingNetSpeed.setVisibility(View.GONE);
-        textNowPlayingNetSpeedBall.setVisibility(View.GONE);
+        channelNameOverlay.startAnimation(fadeInAnim);
+        channelNameOverlay.setVisibility(View.VISIBLE);
+        netSpeedOverlay.startAnimation(fadeInAnim);
+        netSpeedOverlay.setVisibility(View.VISIBLE);
+
+        channelNameMediaFrame.setVisibility(View.INVISIBLE);
+        loadingPicMediaFrame.setVisibility(View.INVISIBLE);
+        netSpeedMediaFrame.setVisibility(View.INVISIBLE);
+        bufferPercentageMediaFrame.setVisibility(View.INVISIBLE);
+        netSpeedBar.setVisibility(View.GONE);
+        netSpeedBall.setVisibility(View.GONE);
     }
 
     private void showBufferingInfo () {
         isBuffering = true;
-        textNowPlayingNetSpeed.setVisibility(View.VISIBLE);
-        imageLoading.setVisibility(View.VISIBLE);
-        textNowPlayingNetSpeedBall.setVisibility(View.VISIBLE);
+        if (mCurrentChannel != null) {
+            channelNameMediaFrame.setText(mCurrentChannel.name);
+            channelNameMediaFrame.startAnimation(fadeInAnim);
+            channelNameMediaFrame.setVisibility(View.VISIBLE);
+        }
+        netSpeedBar.setVisibility(View.VISIBLE);
+        loadingPicMediaFrame.setVisibility(View.VISIBLE);
+        netSpeedBall.setVisibility(View.VISIBLE);
+        netSpeedMediaFrame.startAnimation(fadeInAnim);
+        netSpeedMediaFrame.setVisibility(View.VISIBLE);
+
+        channelNameOverlay.startAnimation(fadeOutAnim);
+        channelNameOverlay.setVisibility(View.INVISIBLE);
+        netSpeedOverlay.startAnimation(fadeOutAnim);
+        netSpeedOverlay.setVisibility(View.INVISIBLE);
+        bufferPercentageMediaFrame.setVisibility(View.VISIBLE);
     }
 
     private long getNetSpeed() {
@@ -557,7 +634,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         ((ViewGroup) playerView.getParent()).removeView(playerView);
         mFullScreenDialog.addContentView(playerView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_skrink));
+        mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.fullscreen_close));
         mExoPlayerFullscreen = true;
         mFullScreenDialog.show();
     }
@@ -569,7 +646,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         ((FrameLayout) findViewById(R.id.media_frame)).addView(playerView);
         mExoPlayerFullscreen = false;
         mFullScreenDialog.dismiss();
-        mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_expand));
+        mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.fullscreen));
     }
 
     private void initFullscreenButton() {
@@ -599,12 +676,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         player.addListener(this);
         player.addAnalyticsListener(this);
 
-        boolean haveResumePosition = mResumeWindow != C.INDEX_UNSET;
-        if (haveResumePosition) {
-            Log.i("DEBUG"," haveResumePosition ");
-            player.seekTo(mResumeWindow, mResumePosition);
-        }
-
         if (null != mCurrentChannel) {
             MediaSource mVideoSource = buildMediaSource(Uri.parse(mCurrentChannel.url.get(mCurrentSourceIndex)));
             Log.i("DEBUG"," mVideoSource: " + mVideoSource);
@@ -630,7 +701,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (mExoPlayerFullscreen) {
             ((ViewGroup) playerView.getParent()).removeView(playerView);
             mFullScreenDialog.addContentView(playerView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_fullscreen_skrink));
+            mFullScreenIcon.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.fullscreen_close));
             mFullScreenDialog.show();
         }
         else
@@ -683,16 +754,26 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
     }
 
+    protected void setCurrentPlayInfo() {
+        if (mCurrentChannel != null) {
+            setCurrentPlayInfo(mCurrentChannel);
+        }
+    }
+
     protected void setCurrentPlayInfo(@NotNull ChannelData channel)
     {
+        if (controlOverlay.getVisibility() == View.INVISIBLE) {
+            controlOverlay.setVisibility(View.VISIBLE);
+        }
+
         mCurrentChannel = channel;
         mCurrentChannelIndex = mChannelList.indexOf(channel);
 
         String logoUrl = channel.logo;
         if (logoUrl == null || logoUrl.isEmpty())
         {
-            imageCurrentChannelLogo.setImageResource(getResources().getIdentifier("@drawable/tv_logo_trans", null, getPackageName()));
-            currentChannelLogoBall.setImageResource(R.drawable.tv_logo_profile);
+            channelLogoBar.setImageResource(R.drawable.tv_logo_trans);
+            channelLogoBall.setImageResource(R.drawable.tv_logo_profile);
         }
         else
         {
@@ -703,9 +784,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     .error(R.drawable.tv_logo_trans)
                     .load(logoUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(imageCurrentChannelLogo);
+                    .into(channelLogoBar);
 
-            // Load the channel logo.
             Glide.with(this)
                     .asBitmap()
                     .placeholder(R.drawable.tv_logo_trans)
@@ -713,7 +793,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     .load(logoUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .fitCenter()
-                    .into(currentChannelLogoBall);
+                    .into(channelLogoBall);
         }
 
         if (channel.countryCode != null && channel.countryCode.length() > 0) {
@@ -726,18 +806,20 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                                 .error(R.drawable.globe)
                                 .listener(new SvgSoftwareLayerSetter());
 
-                requestBuilder.load(Uri.parse(flagUrl)).into(countryFlag);
+                requestBuilder.load(Uri.parse(flagUrl)).into(countryFlagBar);
             }
         }
         else {
-            countryFlag.setImageResource(getResources().getIdentifier("@drawable/globe", null, getPackageName()));
+            countryFlagBar.setImageResource(R.drawable.globe);
         }
 
         if (channel.isFavorite) {
-            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star", null, getPackageName()));
+            favIconBar.setImageResource(R.drawable.star);
+            favIconOverlay.setImageResource(R.drawable.star_overlay);
         }
         else {
-            isFavorite.setImageResource(getResources().getIdentifier("@drawable/ic_star_outline", null, getPackageName()));
+            favIconBar.setImageResource(R.drawable.star_outline);
+            favIconOverlay.setImageResource(R.drawable.star_outline_overlay);
         }
 
         if (channel != null) {
@@ -766,20 +848,21 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
         channelInfo.setSelected(true);
-        textChannelNameOverlay.setText(channel.name);
-        textCurrentChannelName.setText(channel.name);
-        textCurrentChannelName.setSelected(true);
+        channelNameOverlay.setText(channel.name);
+        channelNameMediaFrame.setText(channel.name);
+        channelNameBar.setText(channel.name);
+        channelNameBar.setSelected(true);
 
         String sourceInfo = getCurrentSourceInfo();
         if (sourceInfo == null || sourceInfo.equals("1/1")) {
-            textCurrentChannelSource.setVisibility(View.GONE);
-            textSourceInfoOverlay.setVisibility(View.GONE);
+            sourceInfoBar.setVisibility(View.GONE);
+            sourceInfoOverlay.setVisibility(View.GONE);
         }
         else {
-            textCurrentChannelSource.setText(sourceInfo);
-            textSourceInfoOverlay.setText(sourceInfo);
-            textCurrentChannelSource.setVisibility(View.VISIBLE);
-            textSourceInfoOverlay.setVisibility(View.VISIBLE);
+            sourceInfoBar.setText(sourceInfo);
+            sourceInfoOverlay.setText(sourceInfo);
+            sourceInfoBar.setVisibility(View.VISIBLE);
+            sourceInfoOverlay.setVisibility(View.VISIBLE);
         }
     }
 
@@ -821,25 +904,24 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private void switchToHome() {
         if (bottomNav.getSelectedItemId() != R.id.nav_home) {
+            if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
+                ((ChannelsFragment) selectedFragment).clearFilter();
+            }
             bottomNav.setSelectedItemId(R.id.nav_home);
         }
     }
 
+    public void setLastBarActiveTimeStamp() {
+        this.lastBarActiveTimeStamp = System.currentTimeMillis();
+    }
+
     private void showNowPlayingBar() {
 
+        setLastBarActiveTimeStamp();
         if (mCurrentChannel != null) {
             if (nowPlayingBar.getVisibility() == View.INVISIBLE || nowPlayingBar.getVisibility() == View.GONE) {
-                nowPlayingBar.startAnimation(slideInLeftAnim);
+                nowPlayingBar.startAnimation(slideInLeftBarAnim);
                 nowPlayingBar.setVisibility(View.VISIBLE);
-
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        hideNowPlayingBar();
-                        showNowPlayingBall();
-                    }
-                }, NOW_PLAYING_BAR_FADING_TIME);
             }
         }
     }
@@ -847,24 +929,32 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private void hideNowPlayingBar() {
         if (mCurrentChannel != null) {
             if (nowPlayingBar.getVisibility() == View.VISIBLE) {
-                nowPlayingBar.startAnimation(slideOutLeftAnim);
+                nowPlayingBar.startAnimation(slideOutLeftBarAnim);
                 nowPlayingBar.setVisibility(View.GONE);
             }
         }
     }
 
-    private void showNowPlayingBall() {
-        if (nowPlayingBall.getVisibility() == View.INVISIBLE || nowPlayingBall.getVisibility() == View.GONE) {
-            nowPlayingBall.startAnimation(slideInLeftAnim);
-            nowPlayingBall.setVisibility(View.VISIBLE);
+    private void showNowPlayingBall(boolean slideIn) {
+        if ((nowPlayingBall.getVisibility() == View.INVISIBLE || nowPlayingBall.getVisibility() == View.GONE)
+                && (nowPlayingBar.getVisibility() == View.INVISIBLE || nowPlayingBar.getVisibility() == View.GONE)) {
+            if (slideIn) {
+                nowPlayingBall.startAnimation(slideInLeftAnim);
+            }
+            else {
+                nowPlayingBall.startAnimation(fadeInAnim);
+            }
+            if (mCurrentChannel != null) {
+                nowPlayingBall.setVisibility(View.VISIBLE);
+            }
         }
     }
 
     private void hideNowPlayingBall() {
         if (mCurrentChannel != null) {
-            if (nowPlayingBar.getVisibility() == View.VISIBLE) {
-                nowPlayingBar.startAnimation(slideOutLeftAnim);
-                nowPlayingBar.setVisibility(View.GONE);
+            if (nowPlayingBall.getVisibility() == View.VISIBLE) {
+                nowPlayingBall.startAnimation(fadeOutAnim);
+                nowPlayingBall.setVisibility(View.GONE);
             }
         }
     }
@@ -873,7 +963,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         AppDatabase.getInstance(getApplicationContext()).channelDao().setLastSource(channel.name, source);
         mCurrentSourceIndex = source;
         setCurrentPlayInfo(channel);
-        showNowPlayingBall();
+
+        showNowPlayingBar();
 
         play(channel.url.get(source));
     }
@@ -966,27 +1057,47 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (isBuffering) {
             int percent = getBufferedPercentage();
             String bufferingInfo = "" + percent + "%";
-            textBufferingInfo.setText(bufferingInfo);
+            bufferPercentageMediaFrame.setText(bufferingInfo);
             Log.i(TAG, bufferingInfo);
         }
         if (mCurrentChannel != null && mCurrentChannel.name != null && mCurrentChannel.name.length() > 0)
         {
             String netSpeed = getNetSpeedText(getNetSpeed());
-            textNetSpeed.setText(netSpeed);
-            textNowPlayingNetSpeed.setText(netSpeed);
-            textNowPlayingNetSpeedBall.setText(netSpeed);
+            netSpeedMediaFrame.setText(netSpeed);
+            netSpeedOverlay.setText(netSpeed);
+            netSpeedBar.setText(netSpeed);
+            netSpeedBall.setText(netSpeed);
 
             Log.i(TAG, netSpeed);
         }
     }
 
-    Runnable networkCheckRunnable = new Runnable() {
+    private void startCheckingThread() {
+        if (!isCheckingThreadRunning && (checkingThread == null || !checkingThread.isAlive())) {
+            isCheckingThreadRunning = true;
+            checkingThread = new Thread(checkingRunnable);
+            checkingThread.start();
+        }
+    }
+
+    private void stopCheckingThread() {
+        isCheckingThreadRunning = false;
+    }
+
+    Runnable checkingRunnable = new Runnable() {
         @Override
         public void run() {
-            while (true) {
+            while (isCheckingThreadRunning) {
                 try {
-                    mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
-                    Thread.sleep(1000);
+                    long nowTimeStamp = System.currentTimeMillis();
+                    long timeDiff = (nowTimeStamp - lastBarActiveTimeStamp);
+                    if (timeDiff > NOW_PLAYING_BAR_FADING_TIME) {
+                        mHandler.sendEmptyMessage(MSG_HIDE_NOW_PLAYING_BAR);
+                    }
+                    else {
+                        mHandler.sendEmptyMessage(MSG_GET_BUFFERING_INFO);
+                    }
+                    Thread.sleep(NET_SPEED_CHECK_INTERVAL);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -1498,7 +1609,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         public void handleMessage(@NotNull Message msg) {
             super.handleMessage(msg);
 
-            Log.d(TAG, "Handler: msg.what = " + msg.what);
+            //Log.d(TAG, "Handler: msg.what = " + msg.what);
 
             MainActivity mainActivity = mMainActivityWeakReference.get();
 
@@ -1513,6 +1624,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 }
             }
             else if (msg.what == MSG_GET_BUFFERING_INFO) {
+                mainActivity.getBufferingInfo();
+            }
+            else if (msg.what == MSG_HIDE_NOW_PLAYING_BAR) {
+                mainActivity.hideNowPlayingBar();
+                mainActivity.showNowPlayingBall(false);
                 mainActivity.getBufferingInfo();
             }
         }

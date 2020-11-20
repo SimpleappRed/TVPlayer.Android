@@ -75,6 +75,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         String logoUrl = mChannelList.get(position).logo;
 
         if (logoUrl == null || logoUrl.isEmpty()) {
+            Glide.with(mContext).clear(holder.channelLogo);
             holder.channelLogo.setImageResource(R.drawable.tv_logo_trans);
         }
         else {
@@ -102,6 +103,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
             }
         }
         else {
+            Glide.with(mContext).clear(holder.flag);
             holder.flag.setImageResource(R.drawable.globe);
         }
 

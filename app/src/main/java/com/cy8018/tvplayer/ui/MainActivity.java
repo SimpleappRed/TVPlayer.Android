@@ -224,12 +224,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         });
 
 
-        // Bottom Navigation
-        bottomNav = findViewById(R.id.bottom_navigation);
-        bottomNav.setOnNavigationItemSelectedListener(navListener);
-        bottomNav.setSelectedItemId(R.id.nav_home);
-
-
         // Now Playing Ball
         nowPlayingBall = findViewById(R.id.now_playing_ball);
         nowPlayingBall.setVisibility(View.GONE);
@@ -338,6 +332,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             mResumePosition = savedInstanceState.getLong(STATE_RESUME_POSITION);
             mExoPlayerFullscreen = savedInstanceState.getBoolean(STATE_PLAYER_FULLSCREEN);
         }
+
+
+        // Bottom Navigation
+        bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnNavigationItemSelectedListener(navListener);
+        bottomNav.setSelectedItemId(R.id.nav_home);
+
 
         // find the retained fragment on activity restarts
         FragmentManager fm = getSupportFragmentManager();
@@ -1083,7 +1084,11 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     public String getFlagResourceByCountry(@NotNull String country) {
         String url = null;
-        if (country != null && country.trim().length() > 0 && country.trim().toLowerCase() != "unsorted") {
+        if (country != null && country.trim().length() > 0 && !country.trim().toLowerCase().equals("unsorted")) {
+
+            if (country.trim().toLowerCase().equals("uk")) {
+                country = "gb";
+            }
             url = getResources().getString(R.string.country_flags_url) + country.trim() + getResources().getString(R.string.country_flags_file_extension);
         }
         return url;

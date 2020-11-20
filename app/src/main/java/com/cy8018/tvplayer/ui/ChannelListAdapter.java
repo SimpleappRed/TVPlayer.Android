@@ -97,6 +97,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
                                 .as(PictureDrawable.class)
                                 //.placeholder(R.drawable.globe)
                                 .error(R.drawable.globe)
+                                .diskCacheStrategy(DiskCacheStrategy.DATA)
                                 .listener(new SvgSoftwareLayerSetter());
 
                 requestBuilder.load(Uri.parse(flagUrl)).into(holder.flag);
@@ -132,7 +133,7 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
         String desc = "";
 
-        if (mChannelList.get(position).countryName != null && mChannelList.get(position).countryName.trim().length() > 0) {
+        if (mChannelList.get(position).countryName != null && mChannelList.get(position).countryName.trim().length() > 0 && !mChannelList.get(position).countryName.trim().toLowerCase().equals("unsorted")) {
             desc += mChannelList.get(position).countryName.trim();
         }
         if (mChannelList.get(position).languageName != null && mChannelList.get(position).languageName.trim().length() > 0) {
@@ -150,6 +151,10 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
         if (desc.length() > 0) {
             holder.description.setText(desc);
+            holder.description.setVisibility(View.VISIBLE);
+        }
+        else {
+            holder.description.setVisibility(View.GONE);
         }
 
         // Set OnClickListener

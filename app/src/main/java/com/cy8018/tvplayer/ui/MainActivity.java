@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private BottomNavigationView bottomNav;
 
     private View mainFrame, appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, bufferInfoMediaFrame, controlOverlay;
-    private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfo, channelNameMediaFrame;
+    private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfoBar, channelNameMediaFrame;
     private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, favIconMediaFrame;
     protected GifImageView loadingPicMediaFrame, playButtonBar, playBtnBall, playButtonOverlay;
     protected CircleImageView channelLogoBall;
@@ -254,7 +254,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         nowPlayingBar.setVisibility(View.GONE);
         playButtonBar = findViewById(R.id.play_button_bar);
         countryFlagBar = findViewById(R.id.country_flag_bar);
-        channelInfo = findViewById(R.id.textChannelInfo);
+        channelInfoBar = findViewById(R.id.channel_info_bar);
         favIconBar = findViewById(R.id.fav_icon_bar);
         channelNameBar = findViewById(R.id.channel_name_bar);
         channelLogoBar = findViewById(R.id.channel_logo_bar);
@@ -553,9 +553,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 }
                 else {
                     channelLogoBall.clearAnimation();
-//                    currentChannelLogoBall.setVisibility(View.GONE);
-//                    imagePlayBtnBall.setVisibility(View.VISIBLE);
-//                    imagePlayBtnBall.setImageResource(R.drawable.play);
                     playButtonBar.setImageResource(R.drawable.play);
                     playButtonOverlay.setImageResource(R.drawable.play_overlay);
                 }
@@ -850,6 +847,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         String logoUrl = channel.logo;
         if (logoUrl == null || logoUrl.isEmpty())
         {
+            Glide.with(this).clear(channelLogoBar);
+            Glide.with(this).clear(channelLogoBall);
             channelLogoBar.setImageResource(R.drawable.tv_logo_trans);
             channelLogoBall.setImageResource(R.drawable.tv_logo_profile);
         }
@@ -905,7 +904,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (channel != null) {
 
             String sChannelInfo = "";
-            if (channel.countryName != null && channel.countryName.length() > 0) {
+            if (channel.countryName != null && channel.countryName.length() > 0 && !channel.countryName.trim().toLowerCase().equals("unsorted")) {
                 if (sChannelInfo.length() > 0) {
                     sChannelInfo += ", ";
                 }
@@ -924,10 +923,20 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 sChannelInfo += channel.category;
             }
 
-            channelInfo.setText(sChannelInfo);
+            channelInfoBar.setText(sChannelInfo);
+
+            if (sChannelInfo.length() > 0) {
+                channelInfoBar.setSelected(true);
+                if (channelInfoBar.getVisibility() != View.VISIBLE) {
+                    channelInfoBar.setVisibility(View.VISIBLE);
+                }
+            }
+            else {
+                channelInfoBar.setVisibility(View.GONE);
+            }
         }
 
-        channelInfo.setSelected(true);
+
         channelNameOverlay.setText(channel.name);
         channelNameMediaFrame.setText(channel.name);
         channelNameBar.setText(channel.name);

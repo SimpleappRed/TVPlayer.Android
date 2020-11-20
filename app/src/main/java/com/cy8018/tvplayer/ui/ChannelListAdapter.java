@@ -75,21 +75,20 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         String logoUrl = mChannelList.get(position).logo;
 
         if (logoUrl == null || logoUrl.isEmpty()) {
-            holder.stationLogo.setImageResource(R.drawable.tv_logo_trans);
+            holder.channelLogo.setImageResource(R.drawable.tv_logo_trans);
         }
         else {
             // Load the station logo.
             Glide.with(mContext)
                     .asBitmap()
-                    .timeout(3000)
                     .placeholder(R.drawable.tv_logo_trans)
                     .error(R.drawable.tv_logo_trans)
-                    .load(logoUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(holder.stationLogo);
+                    .load(logoUrl)
+                    .into(holder.channelLogo);
         }
 
-        if (mChannelList.get(position).countryCode != null && mChannelList.get(position).countryCode.length() > 0) {
+        if (mChannelList.get(position).countryCode != null && mChannelList.get(position).countryCode.length() > 0  && !mChannelList.get(position).countryCode.toLowerCase().equals("unsorted")) {
             String flagUrl = ((MainActivity)mContext).getFlagResourceByCountry(mChannelList.get(position).countryCode.toLowerCase());
             if (flagUrl != null) {
                 requestBuilder =
@@ -107,23 +106,24 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
         }
 
         // Set the station title
-        holder.stationTitle.setText(mChannelList.get(position).name);
+        holder.channelName.setText(mChannelList.get(position).name);
         if (mChannelList.get(position).isFavorite) {
-            holder.isFavoriteIcon.setImageResource(R.drawable.star);
+            holder.favIcon.setImageResource(R.drawable.star);
         }
         else {
-            holder.isFavoriteIcon.setImageResource(R.drawable.star_outline);
+            holder.favIcon.setImageResource(R.drawable.star_outline);
         }
 
-        holder.isFavoriteIcon.setOnClickListener(new View.OnClickListener() {
+        holder.favIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                holder.favIcon.startAnimation(((MainActivity)mContext).getScaleAnim());
                 if (mChannelList.get(position).isFavorite) {
                     ((MainActivity)mContext).removeFromFavorites(mChannelList.get(position).name);
-                    holder.isFavoriteIcon.setImageResource(R.drawable.star_outline);
+                    holder.favIcon.setImageResource(R.drawable.star_outline);
                 } else {
                     ((MainActivity)mContext).addToFavorites(mChannelList.get(position).name);
-                    holder.isFavoriteIcon.setImageResource(R.drawable.star);
+                    holder.favIcon.setImageResource(R.drawable.star);
                 }
             }
         });
@@ -245,21 +245,21 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
     class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView stationTitle, description;
-        ImageView stationLogo, isFavoriteIcon, flag;
+        TextView channelName, description;
+        ImageView channelLogo, favIcon, flag;
         RelativeLayout parentLayout;
         CardView listItemBar;
 
         private ViewHolder (View itemView) {
             super(itemView);
-            stationTitle = itemView.findViewById(R.id.channel_name_list_item);
+            channelName = itemView.findViewById(R.id.channel_name_list_item);
             description = itemView.findViewById(R.id.channel_description_list_item);
-            stationLogo = itemView.findViewById(R.id.channel_logo_list_item);
+            channelLogo = itemView.findViewById(R.id.channel_logo_list_item);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                stationLogo.setClipToOutline(true);
+                channelLogo.setClipToOutline(true);
             }
             flag = itemView.findViewById(R.id.country_flag_list_item);
-            isFavoriteIcon = itemView.findViewById(R.id.fav_icon_list_item);
+            favIcon = itemView.findViewById(R.id.fav_icon_list_item);
             listItemBar = itemView.findViewById(R.id.list_item_bar);
             parentLayout = itemView.findViewById(R.id.parent_layout);
         }

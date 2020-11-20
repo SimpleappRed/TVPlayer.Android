@@ -116,13 +116,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     public LoadingDialog loadingDialog;
     private BottomNavigationView bottomNav;
 
-    private View appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, controlOverlay;
-    private TextView sourceInfoBar, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfo, channelNameMediaFrame;
-    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay;
+    private View mainFrame, appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, bufferInfoMediaFrame, controlOverlay;
+    private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfo, channelNameMediaFrame;
+    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, favIconMediaFrame;
     protected GifImageView loadingPicMediaFrame, playButtonBar, playBtnBall, playButtonOverlay;
     protected CircleImageView channelLogoBall;
 
-    private Animation slideInTopAnim, slideInLeftAnim, slideInLeftBarAnim, slideOutTopAnim, slideOutLeftAnim, slideOutLeftBarAnim, fadeOutAnim, fadeInAnim, rotateAnim;
+    private Animation slideInTopAnim, slideInLeftAnim, slideInLeftBarAnim, slideOutTopAnim, slideOutLeftAnim, slideOutLeftBarAnim, fadeOutAnim, fadeOutFastAnim, fadeInAnim, fadeInFastAnim, rotateAnim, scaleAnim;
 
     private RequestBuilder<PictureDrawable> requestBuilder;
 
@@ -170,7 +170,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS * 2,
                 true);
 
-
         loadingDialog = new LoadingDialog(this);
 
         // Animations
@@ -181,9 +180,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         slideOutLeftAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_left);
         slideOutLeftBarAnim = AnimationUtils.loadAnimation(this, R.anim.slide_out_left_bar);
         fadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fade_out);
+        fadeOutFastAnim = AnimationUtils.loadAnimation(this, R.anim.fade_out_fast);
         fadeInAnim = AnimationUtils.loadAnimation(this, R.anim.fade_in);
+        fadeInFastAnim = AnimationUtils.loadAnimation(this, R.anim.fade_in_fast);
         rotateAnim = AnimationUtils.loadAnimation(this, R.anim.rotate);
+        scaleAnim = AnimationUtils.loadAnimation(this, R.anim.scale);
 
+        mainFrame = findViewById(R.id.main_frame);
 
         // App Title Bar
         appTitleBar = findViewById(R.id.app_title_bar);
@@ -194,12 +197,31 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         // MediaFrame
         mediaFrame = findViewById(R.id.media_frame);
+        bufferInfoMediaFrame = findViewById(R.id.buffer_info_media_frame);
+        bufferInfoMediaFrame.setVisibility(View.INVISIBLE);
         bufferPercentageMediaFrame = findViewById(R.id.buffer_percentage_media_frame);
         netSpeedMediaFrame = findViewById(R.id.net_speed_media_frame);
         loadingPicMediaFrame = findViewById(R.id.loading_pic_media_frame);
         loadingPicMediaFrame.setImageResource(R.drawable.loading_wave);
-        loadingPicMediaFrame.setVisibility(View.INVISIBLE);
         channelNameMediaFrame = findViewById(R.id.channel_name_media_frame);
+        favIconMediaFrame = findViewById(R.id.fav_icon_media_frame);
+        favIconMediaFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                favIconMediaFrame.startAnimation(scaleAnim);
+                onCurrentFavIconTapped();
+            }
+        });
+        sourceInfoMediaFrame = findViewById(R.id.source_info_media_frame);
+        sourceInfoMediaFrame.setVisibility(View.GONE);
+        sourceInfoMediaFrame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sourceInfoMediaFrame.startAnimation(scaleAnim);
+                switchSource();
+                setLastBarActiveTimeStamp();
+            }
+        });
 
 
         // Bottom Navigation
@@ -262,6 +284,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         favIconBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                favIconBar.startAnimation(scaleAnim);
                 onCurrentFavIconTapped();
             }
         });
@@ -276,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         sourceInfoBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sourceInfoBar.startAnimation(scaleAnim);
                 switchSource();
                 setLastBarActiveTimeStamp();
             }
@@ -287,6 +311,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         channelNameOverlay = findViewById(R.id.channel_name_overlay);
         channelNameOverlay.setSelected(true);
         sourceInfoOverlay = findViewById(R.id.source_info_overlay);
+        sourceInfoOverlay.setVisibility(View.GONE);
         netSpeedOverlay = findViewById(R.id.net_speed_overlay);
         favIconOverlay = findViewById(R.id.fav_icon_overlay);
         sourceInfoOverlay.setOnClickListener(new View.OnClickListener() {
@@ -367,10 +392,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             removeFromFavorites(mCurrentChannel.name);
             favIconBar.setImageResource(R.drawable.star_outline);
             favIconOverlay.setImageResource(R.drawable.star_outline_overlay);
+            favIconMediaFrame.setImageResource(R.drawable.star_outline_overlay);
         } else {
             addToFavorites(mCurrentChannel.name);
             favIconBar.setImageResource(R.drawable.star);
             favIconOverlay.setImageResource(R.drawable.star_overlay);
+            favIconMediaFrame.setImageResource(R.drawable.star_overlay);
         }
 
         setLastBarActiveTimeStamp();
@@ -419,6 +446,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return favChannels;
     }
 
+    public Animation getScaleAnim() {
+        return scaleAnim;
+    }
+
     public ChannelData getCurrentChannel() {
         return mCurrentChannel;
     }
@@ -439,8 +470,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
                             selectedFragment = new HomeFragment();
-                            frameLayout.height = (int)(mediaFrame.getWidth()*0.5625);
-                            mediaFrame.setLayoutParams(frameLayout);
                             mediaFrame.setVisibility(View.VISIBLE);
                             break;
                         case R.id.nav_channels:
@@ -506,13 +535,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 showBufferingInfo();
                 break;
             case Player.STATE_ENDED:
+                hideBufferingInfo();
                 mPlaybackStatus = PlaybackStatus.STOPPED;
                 playButtonBar.setImageResource(R.drawable.play);
                 playButtonOverlay.setImageResource(R.drawable.play_overlay);
-                hideBufferingInfo();
                 break;
             case Player.STATE_READY:
                 mPlaybackStatus = playWhenReady ? PlaybackStatus.PLAYING : PlaybackStatus.PAUSED;
+                hideBufferingInfo();
                 if (mPlaybackStatus == PlaybackStatus.PLAYING) {
                     playBtnBall.setVisibility(View.GONE);
                     channelLogoBall.setVisibility(View.VISIBLE);
@@ -528,13 +558,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     playButtonBar.setImageResource(R.drawable.play);
                     playButtonOverlay.setImageResource(R.drawable.play_overlay);
                 }
-                hideBufferingInfo();
                 break;
             case Player.STATE_IDLE:
             default:
                 mPlaybackStatus = PlaybackStatus.IDLE;
 
                 setCurrentPlayInfo();
+                hideBufferingInfo();
                 channelLogoBall.clearAnimation();
                 channelLogoBall.setVisibility(View.VISIBLE);
                 if (playBtnBall.getVisibility() == View.VISIBLE) {
@@ -542,44 +572,81 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 }
                 playButtonBar.setImageResource(R.drawable.play);
                 playButtonOverlay.setImageResource(R.drawable.play_overlay);
-                hideBufferingInfo();
                 break;
         }
     }
 
     private  void hideBufferingInfo () {
         isBuffering = false;
-        channelNameOverlay.startAnimation(fadeInAnim);
-        channelNameOverlay.setVisibility(View.VISIBLE);
-        netSpeedOverlay.startAnimation(fadeInAnim);
-        netSpeedOverlay.setVisibility(View.VISIBLE);
 
-        channelNameMediaFrame.setVisibility(View.INVISIBLE);
-        loadingPicMediaFrame.setVisibility(View.INVISIBLE);
-        netSpeedMediaFrame.setVisibility(View.INVISIBLE);
-        bufferPercentageMediaFrame.setVisibility(View.INVISIBLE);
+//        netSpeedOverlay.startAnimation(fadeInFastAnim);
+//        channelNameOverlay.startAnimation(fadeInFastAnim);
+//        favIconOverlay.startAnimation(fadeInFastAnim);
+
+        netSpeedOverlay.setVisibility(View.VISIBLE);
+        channelNameOverlay.setVisibility(View.VISIBLE);
+        favIconOverlay.setVisibility(View.VISIBLE);
+
+        if (sourceInfoOverlay.getText().length() > 0) {
+//            sourceInfoOverlay.startAnimation(fadeInFastAnim);
+            sourceInfoOverlay.setVisibility(View.VISIBLE);
+        }
+
+        if (bufferInfoMediaFrame.getVisibility() == View.VISIBLE) {
+            bufferInfoMediaFrame.startAnimation(fadeOutFastAnim);
+            bufferInfoMediaFrame.setVisibility(View.INVISIBLE);
+        }
+
+//        bufferPercentageMediaFrame.setVisibility(View.INVISIBLE);
+//        channelNameMediaFrame.setVisibility(View.INVISIBLE);
+//        sourceInfoMediaFrame.setVisibility(View.INVISIBLE);
+//        loadingPicMediaFrame.setVisibility(View.INVISIBLE);
+//        netSpeedMediaFrame.setVisibility(View.INVISIBLE);
+//        favIconMediaFrame.setVisibility(View.INVISIBLE);
+
         netSpeedBar.setVisibility(View.GONE);
         netSpeedBall.setVisibility(View.GONE);
     }
 
     private void showBufferingInfo () {
         isBuffering = true;
+
         if (mCurrentChannel != null) {
             channelNameMediaFrame.setText(mCurrentChannel.name);
-            channelNameMediaFrame.startAnimation(fadeInAnim);
             channelNameMediaFrame.setVisibility(View.VISIBLE);
         }
-        netSpeedBar.setVisibility(View.VISIBLE);
-        loadingPicMediaFrame.setVisibility(View.VISIBLE);
-        netSpeedBall.setVisibility(View.VISIBLE);
-        netSpeedMediaFrame.startAnimation(fadeInAnim);
-        netSpeedMediaFrame.setVisibility(View.VISIBLE);
 
-        channelNameOverlay.startAnimation(fadeOutAnim);
-        channelNameOverlay.setVisibility(View.INVISIBLE);
-        netSpeedOverlay.startAnimation(fadeOutAnim);
-        netSpeedOverlay.setVisibility(View.INVISIBLE);
-        bufferPercentageMediaFrame.setVisibility(View.VISIBLE);
+        if (sourceInfoMediaFrame.getText().length()> 0) {
+            if (sourceInfoMediaFrame.getVisibility() != View.VISIBLE) {
+                sourceInfoMediaFrame.setVisibility(View.VISIBLE);
+            }
+        }
+        else
+        {
+            sourceInfoMediaFrame.setVisibility(View.GONE);
+        }
+
+        bufferInfoMediaFrame.setVisibility(View.VISIBLE);
+//        netSpeedMediaFrame.setVisibility(View.VISIBLE);
+//        favIconMediaFrame.setVisibility(View.VISIBLE);
+//        loadingPicMediaFrame.setVisibility(View.VISIBLE);
+//        sourceInfoMediaFrame.setVisibility(View.VISIBLE);
+//        bufferPercentageMediaFrame.setVisibility(View.VISIBLE);
+
+        if (channelNameOverlay.getVisibility() == View.VISIBLE && !mExoPlayerFullscreen) {
+//            channelNameOverlay.startAnimation(fadeOutFastAnim);
+//            netSpeedOverlay.startAnimation(fadeOutFastAnim);
+//            sourceInfoOverlay.startAnimation(fadeOutFastAnim);
+//            favIconOverlay.startAnimation(fadeOutFastAnim);
+
+            channelNameOverlay.setVisibility(View.INVISIBLE);
+            netSpeedOverlay.setVisibility(View.INVISIBLE);
+            sourceInfoOverlay.setVisibility(View.INVISIBLE);
+            favIconOverlay.setVisibility(View.INVISIBLE);
+        }
+
+        netSpeedBar.setVisibility(View.VISIBLE);
+        netSpeedBall.setVisibility(View.VISIBLE);
     }
 
     private long getNetSpeed() {
@@ -706,13 +773,19 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         else
         {
-            findViewById(R.id.media_frame).getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            mediaFrame.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override public void onGlobalLayout() {
-                    View frameView = findViewById(R.id.media_frame);
-                    ViewGroup.LayoutParams layout = frameView.getLayoutParams();
-                    layout.height = (int)(frameView.getWidth()*0.5625);
-                    frameView.setLayoutParams(layout);
-                    frameView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                    ViewGroup.LayoutParams layout = mediaFrame.getLayoutParams();
+                    layout.height = (int)(mediaFrame.getWidth()*0.5625);
+
+                    // open app in landscape mode
+                    if (mainFrame.getHeight() < mainFrame.getWidth()) {
+                        layout.height = layout.height/3;
+                    }
+
+                    mediaFrame.setLayoutParams(layout);
+                    mediaFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 }
             });
         }
@@ -762,6 +835,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void setCurrentPlayInfo(@NotNull ChannelData channel)
     {
+        if (channel == null) {
+            return;
+        }
+
         if (controlOverlay.getVisibility() == View.INVISIBLE) {
             controlOverlay.setVisibility(View.VISIBLE);
         }
@@ -796,7 +873,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     .into(channelLogoBall);
         }
 
-        if (channel.countryCode != null && channel.countryCode.length() > 0) {
+        if (channel.countryCode != null && channel.countryCode.length() > 0 && !channel.countryCode.toLowerCase().equals("unsorted")) {
             String flagUrl = getFlagResourceByCountry(channel.countryCode.toLowerCase());
             if (flagUrl != null) {
                 requestBuilder =
@@ -816,10 +893,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (channel.isFavorite) {
             favIconBar.setImageResource(R.drawable.star);
             favIconOverlay.setImageResource(R.drawable.star_overlay);
+            favIconMediaFrame.setImageResource(R.drawable.star_overlay);
         }
         else {
             favIconBar.setImageResource(R.drawable.star_outline);
             favIconOverlay.setImageResource(R.drawable.star_outline_overlay);
+            favIconMediaFrame.setImageResource(R.drawable.star_outline_overlay);
         }
 
         if (channel != null) {
@@ -855,14 +934,26 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         String sourceInfo = getCurrentSourceInfo();
         if (sourceInfo == null || sourceInfo.equals("1/1")) {
+            sourceInfoBar.setText("");
+            sourceInfoOverlay.setText("");
+            sourceInfoMediaFrame.setText("");
+
             sourceInfoBar.setVisibility(View.GONE);
             sourceInfoOverlay.setVisibility(View.GONE);
+            sourceInfoMediaFrame.setVisibility(View.GONE);
         }
         else {
             sourceInfoBar.setText(sourceInfo);
             sourceInfoOverlay.setText(sourceInfo);
+            sourceInfoMediaFrame.setText(sourceInfo);
+
+            if (isBuffering) {
+                sourceInfoMediaFrame.setVisibility(View.VISIBLE);
+            }
+            else {
+                sourceInfoOverlay.setVisibility(View.VISIBLE);
+            }
             sourceInfoBar.setVisibility(View.VISIBLE);
-            sourceInfoOverlay.setVisibility(View.VISIBLE);
         }
     }
 
@@ -991,21 +1082,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     public String getFlagResourceByCountry(@NotNull String country) {
-        String resource = null;
-        if (country != null && country.trim().length() > 0) {
-            resource = getResources().getString(R.string.country_flags_url) + country.trim() + getResources().getString(R.string.country_flags_file_extension);
+        String url = null;
+        if (country != null && country.trim().length() > 0 && country.trim().toLowerCase() != "unsorted") {
+            url = getResources().getString(R.string.country_flags_url) + country.trim() + getResources().getString(R.string.country_flags_file_extension);
         }
-        else
-        {
-            resource = "@drawable/globe";
-        }
-        return resource;
+        return url;
     }
 
     public boolean removeAllChannels() {
         try {
             AppDatabase.getInstance(getApplicationContext()).channelDao().removeAll();
             mChannelList.clear();
+            gTotalChannelCount = 0;
         }
         catch (Exception e) {
             Toast toast= Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG);
@@ -1047,6 +1135,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             toast.show();
         }
         else {
+            gTotalChannelCount = mChannelList.size();
             if (bottomNav.getSelectedItemId() != R.id.nav_channels) {
                 bottomNav.setSelectedItemId(R.id.nav_channels);
             }

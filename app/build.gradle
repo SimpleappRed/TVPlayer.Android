@@ -25,6 +25,17 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        def requested = details.requested
+        if (requested.group == "androidx") {
+            if (!requested.name.startsWith("multidex")) {
+                details.useVersion "${targetSdk}.+"
+            }
+        }
+    }
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.2.0'

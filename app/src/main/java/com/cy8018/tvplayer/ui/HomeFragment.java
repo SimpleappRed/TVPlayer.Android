@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -13,7 +12,6 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.cy8018.tvplayer.R;
 import com.cy8018.tvplayer.db.ChannelData;
 
@@ -26,7 +24,7 @@ public class HomeFragment extends Fragment {
     // station list
     protected List<ChannelData> mChannelList;
     private ChannelListAdapter adapter;
-    private RecyclerView stationListView;
+    private RecyclerView channelListView;
     private TextView textNoFavChannel;
 
     @Nullable
@@ -34,7 +32,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-        stationListView = view.findViewById(R.id.channel_list_favorite);
+        channelListView = view.findViewById(R.id.channel_list_favorite);
         textNoFavChannel = view.findViewById(R.id.no_fav_channel_text);
         reloadList();
         return view;
@@ -70,11 +68,11 @@ public class HomeFragment extends Fragment {
             adapter = new ChannelListAdapter(this.getContext(), mChannelList);
         }
 
-        stationListView.setAdapter(adapter);
-        stationListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+        channelListView.setAdapter(adapter);
+        channelListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
         if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
         {
-            Objects.requireNonNull(stationListView.getLayoutManager()).scrollToPosition(index);
+            Objects.requireNonNull(channelListView.getLayoutManager()).scrollToPosition(index);
         }
     }
 }

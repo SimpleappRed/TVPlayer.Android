@@ -59,6 +59,12 @@ public class ChannelsFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onPause() {
+        clearFilter();
+        super.onPause();
+    }
+
     public void clearFilter() {
         adapter.getFilter().filter("");
     }

@@ -73,10 +73,7 @@ public class ChannelsFragment extends Fragment {
         mChannelList = ((MainActivity)getActivity()).getChannelList();
 
         if (mChannelList != null && mChannelList.size() > 0) {
-            ViewGroup.LayoutParams layout = textNoChannel.getLayoutParams();
-            layout.height = 0;
-            textNoChannel.setLayoutParams(layout);
-            textNoChannel.setVisibility(View.INVISIBLE);
+            textNoChannel.setVisibility(View.GONE);
         }
 
         int index = -1;

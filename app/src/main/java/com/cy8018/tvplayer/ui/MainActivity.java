@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private DataSource.Factory dataSourceFactory;
 
     private RetainedFragment dataFragment;
-    public Fragment selectedFragment;
+    public Fragment selectedFragment, homeFragment, channelsFragment, settingsFragment;
     private Dialog mFullScreenDialog;
     private PlayerView playerView;
     public LoadingDialog loadingDialog;
@@ -334,11 +334,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
 
 
+        // Fragments
+        homeFragment = new HomeFragment();
+        channelsFragment = new ChannelsFragment();
+        settingsFragment = new SettingsFragment();
+
         // Bottom Navigation
         bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnNavigationItemSelectedListener(navListener);
         bottomNav.setSelectedItemId(R.id.nav_home);
-
 
         // find the retained fragment on activity restarts
         FragmentManager fm = getSupportFragmentManager();
@@ -463,28 +467,26 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             new BottomNavigationView.OnNavigationItemSelectedListener() {
                 @Override
                 public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                    ViewGroup.LayoutParams frameLayout = mediaFrame.getLayoutParams();
-
                     switch (item.getItemId()) {
                         case R.id.nav_home:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
-                            selectedFragment = new HomeFragment();
+                            selectedFragment = homeFragment;
                             mediaFrame.setVisibility(View.VISIBLE);
                             break;
                         case R.id.nav_channels:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
-                            selectedFragment = new ChannelsFragment();
+                            selectedFragment = channelsFragment;
                             mediaFrame.setVisibility(View.GONE);
                             break;
                         case R.id.nav_setting:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
-                            selectedFragment = new SettingsFragment();
+                            selectedFragment = settingsFragment;
                             mediaFrame.setVisibility(View.GONE);
                             break;
                     }
@@ -968,14 +970,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     protected  void switchSource() {
-        if (null == mCurrentChannel) {
+        if (null == mCurrentChannel && mChannelList != null && mCurrentChannelIndex > 0 && mChannelList.size() > mCurrentChannelIndex) {
             mCurrentChannel = mChannelList.get(mCurrentChannelIndex);
         }
-        int index = 0;
-        if (mCurrentSourceIndex + 1 < mCurrentChannel.url.size()) {
-            index = mCurrentSourceIndex + 1;
+        if (null != mCurrentChannel ) {
+            int index = 0;
+            if (mCurrentSourceIndex + 1 < mCurrentChannel.url.size()) {
+                index = mCurrentSourceIndex + 1;
+            }
+            play(mCurrentChannel, index);
         }
-        play(mCurrentChannel, index);
     }
 
     private String getSourceInfo(ChannelData channel, int source) {
@@ -1151,7 +1155,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         else {
             gTotalChannelCount = mChannelList.size();
             if (bottomNav.getSelectedItemId() != R.id.nav_channels) {
-                bottomNav.setSelectedItemId(R.id.nav_channels);
+                try {
+                    bottomNav.setSelectedItemId(R.id.nav_channels);
+                }
+                catch (Exception e) {
+                    Log.e(TAG, "initStationListView: bottomNav.setSelectedItemId: " + e.getMessage());
+                }
             }
         }
     }

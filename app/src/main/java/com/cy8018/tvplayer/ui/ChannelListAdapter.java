@@ -242,8 +242,13 @@ public class ChannelListAdapter extends RecyclerView.Adapter<ChannelListAdapter.
 
             if (selectedPos >= 0)
             {
-                selectedPos = mChannelList.indexOf(mChannelListFull.get(selectedPos));
-                notifyItemChanged(selectedPos);
+                try {
+                    selectedPos = mChannelList.indexOf(mChannelListFull.get(selectedPos));
+                    notifyItemChanged(selectedPos);
+                }
+                catch (Exception e) {
+                    Log.e(TAG, "publishResults: Exception: " + e.getMessage());
+                }
             }
 
             notifyDataSetChanged();

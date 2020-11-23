@@ -472,6 +472,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
+                            if (homeFragment == null) {
+                                homeFragment = new HomeFragment();
+                            }
                             selectedFragment = homeFragment;
                             mediaFrame.setVisibility(View.VISIBLE);
                             break;
@@ -479,12 +482,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
                             }
+                            if (channelsFragment == null) {
+                                channelsFragment = new ChannelsFragment();
+                            }
                             selectedFragment = channelsFragment;
                             mediaFrame.setVisibility(View.GONE);
                             break;
                         case R.id.nav_setting:
                             if (selectedFragment != null && selectedFragment.getClass() == ChannelsFragment.class) {
                                 ((ChannelsFragment) selectedFragment).clearFilter();
+                            }
+                            if (settingsFragment == null) {
+                                settingsFragment = new SettingsFragment();
                             }
                             selectedFragment = settingsFragment;
                             mediaFrame.setVisibility(View.GONE);

@@ -69,6 +69,7 @@ public class ChannelsFragment extends Fragment {
     }
 
     public void clearFilter() {
+        searchView.setText("");
         adapter.getFilter().filter("");
     }
 

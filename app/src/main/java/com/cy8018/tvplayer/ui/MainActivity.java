@@ -1159,7 +1159,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         controlOverlay.setVisibility(View.INVISIBLE);
 
-        hideNowPlayingBall();
+        nowPlayingBall.setVisibility(View.GONE);
+        channelLogoBall.setVisibility(View.INVISIBLE);
 
         if (bottomNav.getSelectedItemId() == R.id.nav_home) {
             ((HomeFragment)selectedFragment).reloadList();

@@ -824,22 +824,26 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         else
         {
-            mediaFrame.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override public void onGlobalLayout() {
-
-                    ViewGroup.LayoutParams layout = mediaFrame.getLayoutParams();
-                    layout.height = (int)(mediaFrame.getWidth()*0.5625);
-
-                    // open app in landscape mode
-                    if (mainFrame.getHeight() < mainFrame.getWidth()) {
-                        layout.height = layout.height/3;
-                    }
-
-                    mediaFrame.setLayoutParams(layout);
-                    mediaFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                }
-            });
+            initMediaFrame();
         }
+    }
+
+    private void initMediaFrame() {
+        mediaFrame.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override public void onGlobalLayout() {
+
+                ViewGroup.LayoutParams layout = mediaFrame.getLayoutParams();
+                layout.height = (int)(mediaFrame.getWidth()*0.5625);
+
+                // open app in landscape mode
+                if (mainFrame.getHeight() < mainFrame.getWidth()) {
+                    layout.height = layout.height/3;
+                }
+
+                mediaFrame.setLayoutParams(layout);
+                mediaFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            }
+        });
     }
 
     private MediaSource buildMediaSource(Uri uri) {
@@ -1150,7 +1154,9 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void stopPlayer() {
         clearCurrentChannel();
-        player.stop(true);
+        if (player != null) {
+            player.stop(true);
+        }
         controlOverlay.setVisibility(View.INVISIBLE);
 
         if (bottomNav.getSelectedItemId() == R.id.nav_home) {
@@ -1160,8 +1166,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             ((ChannelsFragment)selectedFragment).reloadList();
         }
 
-        ((ViewGroup) playerView.getParent()).removeView(playerView);
-        ((FrameLayout) findViewById(R.id.media_frame)).addView(playerView);
+        initMediaFrame();
     }
 
     protected void pausePlayer() {

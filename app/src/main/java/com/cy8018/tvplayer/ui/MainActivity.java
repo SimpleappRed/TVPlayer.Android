@@ -1159,6 +1159,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         }
         controlOverlay.setVisibility(View.INVISIBLE);
 
+        hideNowPlayingBall();
+
         if (bottomNav.getSelectedItemId() == R.id.nav_home) {
             ((HomeFragment)selectedFragment).reloadList();
         }
@@ -1166,6 +1168,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             ((ChannelsFragment)selectedFragment).reloadList();
         }
 
+        initExoPlayer();
         initMediaFrame();
     }
 

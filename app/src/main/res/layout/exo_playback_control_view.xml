@@ -20,34 +20,19 @@
         >
         <pl.droidsonroids.gif.GifImageView
             android:layout_marginStart="8dp"
-            android:layout_marginEnd="5dp"
+            android:layout_marginEnd="3dp"
             android:id="@+id/play_button_overlay"
+            android:padding="3dp"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:src="@drawable/play_overlay"
             />
-        <TextView
-            android:id="@+id/net_speed_overlay"
-            android:layout_width="52dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end|center_vertical"
-            android:gravity="end|center_vertical"
-            android:textColor="@color/colorLightGray"
-            android:textSize="11sp"
-            />
-        <TextView
-            android:id="@+id/channel_name_overlay"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:padding="2dp"
-            android:textColor="@color/colorLightGray"
-            android:textSize="20sp"
-            android:layout_weight="1"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:singleLine="true"
+        <ImageView
+            android:id="@+id/fav_icon_overlay"
+            android:padding="6dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/star_outline_overlay"
             />
         <TextView
             android:id="@+id/source_info_overlay"
@@ -56,38 +41,84 @@
             android:layout_gravity="center"
             android:paddingHorizontal="5dp"
             android:paddingVertical="4dp"
+            android:layout_marginHorizontal="2dp"
             android:layout_marginVertical="4dp"
             android:gravity="center"
-            android:textColor="@color/lightGrey"
+            android:textColor="@color/colorLightGray"
             android:textSize="15sp"
             android:background="@drawable/text_border"
             android:shadowColor="#000000"
             />
-        <ImageView
-            android:id="@+id/fav_icon_overlay"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="3dp"
-            android:padding="6dp"
+        <LinearLayout
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="3dp"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/channel_name_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:paddingHorizontal="2dp"
+                android:textColor="@color/colorLightGray"
+                android:textSize="20sp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                />
+            <TextView
+                android:id="@+id/net_speed_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-2dp"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:textColor="@color/colorGray"
+                android:textSize="8sp"
+                />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/star_outline_overlay"
-            />
-        <FrameLayout
-            android:id="@+id/exo_fullscreen_button"
-            android:layout_width="41dp"
-            android:layout_height="41dp"
-            android:layout_gravity="center"
-            android:layout_marginEnd="5dp"
             >
             <ImageView
-                android:id="@+id/exo_fullscreen_icon"
+                android:id="@+id/aspect_ratio_icon_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="4dp"
+                android:src="@drawable/aspect_ratio"
+                />
+            <TextView
+                android:id="@+id/aspect_ratio_text_overlay"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:adjustViewBounds="true"
-                android:scaleType="fitCenter"
-                android:src="@drawable/fullscreen" />
+                android:textColor="@color/colorLightGray"
+                android:textSize="10.5dp"
+                android:textStyle="bold"
+                />
         </FrameLayout>
+
+        <ImageView
+            android:id="@+id/exo_fullscreen_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="6dp"
+            android:layout_marginEnd="8dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:src="@drawable/fullscreen" />
     </LinearLayout>
 </LinearLayout>

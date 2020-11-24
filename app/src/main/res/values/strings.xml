@@ -11,6 +11,8 @@
     <string name="country_flags_url">https://hatscripts.github.io/circle-flags/flags/</string>
     <string name="country_flags_file_extension">.svg</string>
     <string name="loading">Loading…</string>
+    <string name="aspect_ratio_fit">Fit</string>
+    <string name="aspect_ratio_fill">Fill</string>
     <string name="search_hint"> Name/Country/Language/Category…</string>
     <string name="loading_channel_hint"> M3U Playlist URL</string>
     <string name="loading_channel_from_m3u">Load channels from M3U playlist </string>

@@ -50,6 +50,7 @@ import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
@@ -117,8 +118,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private BottomNavigationView bottomNav;
 
     private View mainFrame, appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, bufferInfoMediaFrame, controlOverlay;
-    private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, channelNameBar, channelInfoBar, channelNameMediaFrame;
-    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, favIconMediaFrame;
+    private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, aspectRatioTextOverlay, channelNameBar, channelInfoBar, channelNameMediaFrame;
+    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, aspectRatioIconOverlay, favIconMediaFrame;
     protected GifImageView loadingPicMediaFrame, playButtonBar, playBtnBall, playButtonOverlay;
     protected CircleImageView channelLogoBall;
 
@@ -127,11 +128,12 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private RequestBuilder<PictureDrawable> requestBuilder;
 
     private final String STATE_RESUME_WINDOW = "resumeWindow";
-    private final String STATE_RESUME_POSITION = "resumePosition";
+    private final String STATE_PLAYER_ASPECT_RATIO = "aspectRatio";
     private final String STATE_PLAYER_FULLSCREEN = "playerFullscreen";
 
+    private int mCurrentAspectRatio;
+
     private int mResumeWindow;
-    private long mResumePosition;
     private boolean mExoPlayerFullscreen = false;
 
     private long lastTotalRxBytes = 0;
@@ -162,6 +164,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        mCurrentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FIT;
         Log.d(TAG, "onCreate: ");
 
         dataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(this, getString(R.string.app_name)),
@@ -272,8 +275,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 setLastBarActiveTimeStamp();
                 onPlayButtonTapped();
             }
-
-
         });
         favIconBar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -289,13 +290,22 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 setLastBarActiveTimeStamp();
             }
         });
-
         sourceInfoBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sourceInfoBar.startAnimation(scaleAnim);
                 switchSource();
                 setLastBarActiveTimeStamp();
+            }
+        });
+        countryFlagBar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mPlaybackStatus != PlaybackStatus.PLAYING) {
+                    nowPlayingBar.startAnimation(slideOutLeftAnim);
+                    nowPlayingBar.setVisibility(View.GONE);
+                    stopPlayer();
+                }
             }
         });
 
@@ -308,15 +318,28 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         sourceInfoOverlay.setVisibility(View.GONE);
         netSpeedOverlay = findViewById(R.id.net_speed_overlay);
         favIconOverlay = findViewById(R.id.fav_icon_overlay);
+        aspectRatioTextOverlay = findViewById(R.id.aspect_ratio_text_overlay);
+        aspectRatioIconOverlay = findViewById(R.id.aspect_ratio_icon_overlay);
+        aspectRatioIconOverlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                switchAspectRatio();
+                aspectRatioIconOverlay.startAnimation(scaleAnim);
+                aspectRatioTextOverlay.startAnimation(scaleAnim);
+            }
+        });
         sourceInfoOverlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sourceInfoOverlay.startAnimation(scaleAnim);
                 switchSource();
             }
         });
         favIconOverlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                favIconOverlay.startAnimation(scaleAnim);
                 onCurrentFavIconTapped();
             }
         });
@@ -329,7 +352,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
         if (savedInstanceState != null) {
             mResumeWindow = savedInstanceState.getInt(STATE_RESUME_WINDOW);
-            mResumePosition = savedInstanceState.getLong(STATE_RESUME_POSITION);
+            mCurrentAspectRatio = savedInstanceState.getInt(STATE_PLAYER_ASPECT_RATIO);
             mExoPlayerFullscreen = savedInstanceState.getBoolean(STATE_PLAYER_FULLSCREEN);
         }
 
@@ -377,16 +400,29 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         return mChannelList;
     }
 
+    private void switchAspectRatio() {
+
+        if (mCurrentAspectRatio == AspectRatioFrameLayout.RESIZE_MODE_FIT) {
+            mCurrentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FILL;
+        }
+        else {
+            mCurrentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FIT;
+        }
+        setAspectRatioText();
+        playerView.setResizeMode(mCurrentAspectRatio);
+    }
+
     private void onPlayButtonTapped() {
         switch (mPlaybackStatus) {
             case PlaybackStatus.IDLE:
             case PlaybackStatus.PAUSED:
                 if (null != mCurrentChannel && !mCurrentChannel.url.isEmpty()) {
+                    setCurrentPlayInfo();
                     play(mCurrentChannel.url.get(mCurrentSourceIndex));
                 }
                 break;
             case PlaybackStatus.PLAYING:
-                stopPlaying();
+                pausePlayer();
                 break;
             default:
         }
@@ -526,7 +562,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putInt(STATE_RESUME_WINDOW, mResumeWindow);
-        outState.putLong(STATE_RESUME_POSITION, mResumePosition);
+        outState.putInt(STATE_PLAYER_ASPECT_RATIO, mCurrentAspectRatio);
         outState.putBoolean(STATE_PLAYER_FULLSCREEN, mExoPlayerFullscreen);
         super.onSaveInstanceState(outState);
     }
@@ -544,6 +580,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 playButtonBar.setImageResource(R.drawable.loading_circle);
                 playBtnBall.setImageResource(R.drawable.loading_circle);
                 playButtonOverlay.setImageResource(R.drawable.loading_wave);
+                countryFlagBar.setImageResource(R.drawable.close_round);
                 showBufferingInfo();
                 break;
             case Player.STATE_ENDED:
@@ -551,11 +588,13 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                 mPlaybackStatus = PlaybackStatus.STOPPED;
                 playButtonBar.setImageResource(R.drawable.play);
                 playButtonOverlay.setImageResource(R.drawable.play_overlay);
+                countryFlagBar.setImageResource(R.drawable.close_round);
                 break;
             case Player.STATE_READY:
                 mPlaybackStatus = playWhenReady ? PlaybackStatus.PLAYING : PlaybackStatus.PAUSED;
                 hideBufferingInfo();
                 if (mPlaybackStatus == PlaybackStatus.PLAYING) {
+                    setCurrentPlayInfo();
                     playBtnBall.setVisibility(View.GONE);
                     channelLogoBall.setVisibility(View.VISIBLE);
                     channelLogoBall.startAnimation(rotateAnim);
@@ -566,6 +605,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
                     channelLogoBall.clearAnimation();
                     playButtonBar.setImageResource(R.drawable.play);
                     playButtonOverlay.setImageResource(R.drawable.play_overlay);
+                    countryFlagBar.setImageResource(R.drawable.close_round);
                 }
                 break;
             case Player.STATE_IDLE:
@@ -574,13 +614,16 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
                 setCurrentPlayInfo();
                 hideBufferingInfo();
-                channelLogoBall.clearAnimation();
-                channelLogoBall.setVisibility(View.VISIBLE);
+                if (mCurrentChannel != null) {
+                    channelLogoBall.clearAnimation();
+                    channelLogoBall.setVisibility(View.VISIBLE);
+                }
                 if (playBtnBall.getVisibility() == View.VISIBLE) {
                     playBtnBall.setVisibility(View.GONE);
                 }
                 playButtonBar.setImageResource(R.drawable.play);
                 playButtonOverlay.setImageResource(R.drawable.play_overlay);
+                countryFlagBar.setImageResource(R.drawable.close_round);
                 break;
         }
     }
@@ -650,8 +693,8 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
             channelNameOverlay.setVisibility(View.INVISIBLE);
             netSpeedOverlay.setVisibility(View.INVISIBLE);
-            sourceInfoOverlay.setVisibility(View.INVISIBLE);
-            favIconOverlay.setVisibility(View.INVISIBLE);
+            //sourceInfoOverlay.setVisibility(View.INVISIBLE);
+            //favIconOverlay.setVisibility(View.INVISIBLE);
         }
 
         netSpeedBar.setVisibility(View.VISIBLE);
@@ -728,8 +771,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     private void initFullscreenButton() {
         PlayerControlView controlView = playerView.findViewById(R.id.exo_controller);
         mFullScreenIcon = controlView.findViewById(R.id.exo_fullscreen_icon);
-        FrameLayout mFullScreenButton = controlView.findViewById(R.id.exo_fullscreen_button);
-        mFullScreenButton.setOnClickListener(new View.OnClickListener() {
+        mFullScreenIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!mExoPlayerFullscreen)
@@ -742,15 +784,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private void initExoPlayer() {
 
-        if (null == player) {
-            player = new SimpleExoPlayer.Builder(this).build();
-        }
+        player = new SimpleExoPlayer.Builder(this).build();
 
         playerView.setPlayer(player);
-        //playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        playerView.setResizeMode(mCurrentAspectRatio);
         player.setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT);
         player.addListener(this);
         player.addAnalyticsListener(this);
+
+        setAspectRatioText();
 
         if (null != mCurrentChannel) {
             MediaSource mVideoSource = buildMediaSource(Uri.parse(mCurrentChannel.url.get(mCurrentSourceIndex)));
@@ -822,7 +864,6 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         super.onPause();
         if (playerView != null && player != null) {
             mResumeWindow = player.getCurrentWindowIndex();
-            mResumePosition = Math.max(0, player.getContentPosition());
             player.release();
         }
         if (mFullScreenDialog != null)
@@ -833,6 +874,15 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (player != null) {
             player.release();
             player = null;
+        }
+    }
+
+    private void setAspectRatioText() {
+        if (mCurrentAspectRatio == AspectRatioFrameLayout.RESIZE_MODE_FIT) {
+            aspectRatioTextOverlay.setText(getString(R.string.aspect_ratio_fit));
+        }
+        else {
+            aspectRatioTextOverlay.setText(getString(R.string.aspect_ratio_fill));
         }
     }
 
@@ -1000,6 +1050,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
     }
 
     public void clearCurrentChannel() {
+
         mCurrentChannel = null;
         mCurrentChannelIndex = 0;
         mCurrentSourceIndex = 0;
@@ -1090,15 +1141,30 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     protected void play(String url) {
         Uri uri = Uri.parse(url);
-        stopPlaying();
+        pausePlayer();
 
         // Prepare the player with the source.
         player.prepare(buildMediaSource(uri));
         player.setPlayWhenReady(true);
     }
 
-    protected void stopPlaying() {
-        //clearCurrentChannel();
+    protected void stopPlayer() {
+        clearCurrentChannel();
+        player.stop(true);
+        controlOverlay.setVisibility(View.INVISIBLE);
+
+        if (bottomNav.getSelectedItemId() == R.id.nav_home) {
+            ((HomeFragment)selectedFragment).reloadList();
+        }
+        if (bottomNav.getSelectedItemId() == R.id.nav_channels) {
+            ((ChannelsFragment)selectedFragment).reloadList();
+        }
+
+        ((ViewGroup) playerView.getParent()).removeView(playerView);
+        ((FrameLayout) findViewById(R.id.media_frame)).addView(playerView);
+    }
+
+    protected void pausePlayer() {
         if (player.isPlaying()) {
             player.stop();
         }
@@ -1749,8 +1815,10 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
             }
             else if (msg.what == MSG_HIDE_NOW_PLAYING_BAR) {
                 mainActivity.hideNowPlayingBar();
-                mainActivity.showNowPlayingBall(false);
-                mainActivity.getBufferingInfo();
+                if (mainActivity.getCurrentChannel() != null) {
+                    mainActivity.showNowPlayingBall(false);
+                    mainActivity.getBufferingInfo();
+                }
             }
         }
     }

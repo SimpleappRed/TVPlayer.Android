@@ -34,45 +34,54 @@ public class HomeFragment extends Fragment {
 
         channelListView = view.findViewById(R.id.channel_list_favorite);
         textNoFavChannel = view.findViewById(R.id.no_fav_channel_text);
-        reloadList();
+
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        reloadList();
+    }
+
     public void reloadList() {
-        mChannelList = ((MainActivity)getActivity()).getChannelListFavorites();
+        MainActivity mainActivity = ((MainActivity)getActivity());
+        if (mainActivity != null) {
+            mChannelList = ((MainActivity)getActivity()).getChannelListFavorites();
 
-        if (mChannelList != null && mChannelList.size() > 0) {
-            ViewGroup.LayoutParams layout = textNoFavChannel.getLayoutParams();
-            layout.height = 0;
-            textNoFavChannel.setLayoutParams(layout);
-            textNoFavChannel.setVisibility(View.INVISIBLE);
-        }
+            if (mChannelList != null && mChannelList.size() > 0) {
+                ViewGroup.LayoutParams layout = textNoFavChannel.getLayoutParams();
+                layout.height = 0;
+                textNoFavChannel.setLayoutParams(layout);
+                textNoFavChannel.setVisibility(View.INVISIBLE);
+            }
 
-        int index = -1;
-        int counter = -1;
-        ChannelData currentChannel = ((MainActivity)getActivity()).getCurrentChannel();
-        if (currentChannel != null) {
-            for (ChannelData channel: mChannelList) {
-                counter ++;
-                if (channel.name.equals(currentChannel.name)) {
-                    index = counter;
-                    break;
+            int index = -1;
+            int counter = -1;
+            ChannelData currentChannel = ((MainActivity)getActivity()).getCurrentChannel();
+            if (currentChannel != null) {
+                for (ChannelData channel: mChannelList) {
+                    counter ++;
+                    if (channel.name.equals(currentChannel.name)) {
+                        index = counter;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (index >= 0) {
-            adapter = new ChannelListAdapter(this.getContext(), mChannelList, index);
-        }
-        else {
-            adapter = new ChannelListAdapter(this.getContext(), mChannelList);
-        }
+            if (index >= 0) {
+                adapter = new ChannelListAdapter(this.getContext(), mChannelList, index);
+            }
+            else {
+                adapter = new ChannelListAdapter(this.getContext(), mChannelList);
+            }
 
-        channelListView.setAdapter(adapter);
-        channelListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
-        if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-        {
-            Objects.requireNonNull(channelListView.getLayoutManager()).scrollToPosition(index);
+            channelListView.setAdapter(adapter);
+            channelListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+            if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+            {
+                Objects.requireNonNull(channelListView.getLayoutManager()).scrollToPosition(index);
+            }
         }
     }
 }

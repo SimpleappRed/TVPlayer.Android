@@ -53,10 +53,13 @@ public class ChannelsFragment extends Fragment {
 
             }
         });
-
-        reloadList();
-
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        reloadList();
     }
 
     @Override
@@ -70,35 +73,38 @@ public class ChannelsFragment extends Fragment {
     }
 
     public void reloadList() {
-        mChannelList = ((MainActivity)getActivity()).getChannelList();
+        MainActivity mainActivity = ((MainActivity)getActivity());
+        if (mainActivity != null) {
+            mChannelList = mainActivity.getChannelList();
 
-        if (mChannelList != null && mChannelList.size() > 0) {
-            textNoChannel.setVisibility(View.GONE);
-        }
+            if (mChannelList != null && mChannelList.size() > 0) {
+                textNoChannel.setVisibility(View.GONE);
+            }
 
-        int index = -1;
-        ChannelData currentChannel = ((MainActivity)getActivity()).getCurrentChannel();
-        if (currentChannel != null) {
-            for (ChannelData channel: mChannelList) {
-                index ++;
-                if (channel.name.equals(currentChannel.name)) {
-                    break;
+            int index = -1;
+            ChannelData currentChannel = ((MainActivity)getActivity()).getCurrentChannel();
+            if (currentChannel != null) {
+                for (ChannelData channel: mChannelList) {
+                    index ++;
+                    if (channel.name.equals(currentChannel.name)) {
+                        break;
+                    }
                 }
             }
-        }
 
-        if (index >= 0) {
-            adapter = new ChannelListAdapter(this.getContext(), mChannelList, index);
-        }
-        else {
-            adapter = new ChannelListAdapter(this.getContext(), mChannelList);
-        }
+            if (index >= 0) {
+                adapter = new ChannelListAdapter(this.getContext(), mChannelList, index);
+            }
+            else {
+                adapter = new ChannelListAdapter(this.getContext(), mChannelList);
+            }
 
-        stationListView.setAdapter(adapter);
-        stationListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
-        if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-        {
-            Objects.requireNonNull(stationListView.getLayoutManager()).scrollToPosition(index);
+            stationListView.setAdapter(adapter);
+            stationListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+            if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+            {
+                Objects.requireNonNull(stationListView.getLayoutManager()).scrollToPosition(index);
+            }
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.cy8018.tvplayer.R;
 import com.cy8018.tvplayer.db.ChannelData;
+import com.cy8018.tvplayer.util.MarginItemDecoration;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,14 +28,15 @@ public class ChannelsFragment extends Fragment {
 
     private EditText searchView;
     private ChannelListAdapter adapter;
-    private RecyclerView stationListView;
+    private RecyclerView channelListView;
     private TextView textNoChannel;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_channels, container, false);
-        stationListView = view.findViewById(R.id.station_list_all);
+        channelListView = view.findViewById(R.id.channel_list_all);
+        channelListView.addItemDecoration(new MarginItemDecoration(getContext(), 50, 8));
         textNoChannel = view.findViewById(R.id.no_channel_text);
         searchView = view.findViewById(R.id.search_bar);
         searchView.addTextChangedListener(new TextWatcher() {
@@ -102,11 +104,11 @@ public class ChannelsFragment extends Fragment {
                 adapter = new ChannelListAdapter(this.getContext(), mChannelList);
             }
 
-            stationListView.setAdapter(adapter);
-            stationListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+            channelListView.setAdapter(adapter);
+            channelListView.setLayoutManager(new LinearLayoutManager(this.getContext()));
             if (index > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
             {
-                Objects.requireNonNull(stationListView.getLayoutManager()).scrollToPosition(index);
+                Objects.requireNonNull(channelListView.getLayoutManager()).scrollToPosition(index);
             }
         }
     }

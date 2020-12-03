@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.cy8018.tvplayer.R;
 import com.cy8018.tvplayer.db.ChannelData;
+import com.cy8018.tvplayer.util.MarginItemDecoration;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,7 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         channelListView = view.findViewById(R.id.channel_list_favorite);
+        channelListView.addItemDecoration(new MarginItemDecoration(getContext(), 6, 6));
         textNoFavChannel = view.findViewById(R.id.no_fav_channel_text);
 
         return view;

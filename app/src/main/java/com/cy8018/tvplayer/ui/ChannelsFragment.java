@@ -36,7 +36,7 @@ public class ChannelsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_channels, container, false);
         channelListView = view.findViewById(R.id.channel_list_all);
-        channelListView.addItemDecoration(new MarginItemDecoration(getContext(), 50, 8));
+        channelListView.addItemDecoration(new MarginItemDecoration(getContext(), 48, 8));
         textNoChannel = view.findViewById(R.id.no_channel_text);
         searchView = view.findViewById(R.id.search_bar);
         searchView.addTextChangedListener(new TextWatcher() {

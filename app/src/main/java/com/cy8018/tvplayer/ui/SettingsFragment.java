@@ -20,6 +20,7 @@ public class SettingsFragment extends Fragment {
     private Button loadDefaultBtn;
     private Button loadUrlBtn;
     private Button removeAllBtn;
+    private Button addChannelBtn;
     private TextView channelsCount;
     private TextView favChannelsCount;
     private EditText ChannelListUrl;
@@ -32,9 +33,11 @@ public class SettingsFragment extends Fragment {
         loadDefaultBtn = view.findViewById(R.id.load_default_button);
         loadUrlBtn = view.findViewById(R.id.load_url_button);
         removeAllBtn = view.findViewById(R.id.remove_all_button);
+        addChannelBtn = view.findViewById(R.id.add_channel_button);
         channelsCount = view.findViewById(R.id.channels_count);
         favChannelsCount = view.findViewById(R.id.fav_channels_count);
         ChannelListUrl = view.findViewById(R.id.playlist_url);
+
 
 //        if (((MainActivity)getActivity()).getChannelList() != null && ((MainActivity)getActivity()).getChannelList().size() > 0){
 //            loadDefaultBtn.setVisibility(View.INVISIBLE);
@@ -109,6 +112,15 @@ public class SettingsFragment extends Fragment {
                     channelsCount.setText("0");
                     favChannelsCount.setText("0");
                 }
+            }
+        });
+
+
+        addChannelBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AddChannelDialog dialog = new AddChannelDialog();
+                dialog.show(getFragmentManager(), "AddChannelDialog");
             }
         });
         return view;

@@ -16,6 +16,9 @@ public interface ChannelDao {
     @Query("SELECT * FROM channels WHERE is_favorite = 1")
     List<ChannelData> loadAllFavorites();
 
+    @Query("SELECT count (uid) FROM channels WHERE name = :name")
+    int isChannelExists(String name);
+
     @Query("SELECT last_source FROM channels WHERE name = :name")
     int getLastSource(String name);
 
@@ -34,7 +37,7 @@ public interface ChannelDao {
     @Query("delete from channels")
     void removeAll();
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(ChannelData channel);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">TV Player</string>
-    <string name="app_version"> V2.2</string>
-    <string name="app_description">Android IPTV Player</string>
-    <string name="email_copyright">cy3118018@gmail.com ©2020</string>
+    <string name="app_version"> V2.2\u00A0</string>
+    <string name="app_description">Android IPTV Player\u00A0</string>
+    <string name="email_copyright">cy3118018@gmail.com ©2021</string>
 
     <string name="station_list_file_name">tv_station_list.json</string>
 <!--<string name="tv_channel_list">https://iptv-org.github.io/iptv/channels.json</string>-->
@@ -15,9 +15,9 @@
     <string name="cancel">Cancel</string>
     <string name="aspect_ratio_fit">Fit</string>
     <string name="aspect_ratio_fill">Fill</string>
-    <string name="search_hint"> Name/Country/Language/Category…</string>
-    <string name="loading_channel_hint"> M3U Playlist URL</string>
-    <string name="loading_channel_from_m3u">Load channels from M3U playlist </string>
+    <string name="search_hint">\u00A0Name/Country/Language/Category…</string>
+    <string name="loading_channel_hint">\u00A0M3U Playlist URL</string>
+    <string name="loading_channel_from_m3u">Load channels from M3U playlist\u00A0</string>
     <string name="no_channel">No channel found, please load channels via Settings menu.</string>
     <string name="no_favorites">No favorites channel yet. Add to favorites by clicking the ⭐ icon besides the channel name.</string>
     <string name="notice">Note: This App doesn\'t provide any TV sources. You need to add a playlist from your IPTV provider to watch live TV channels.</string>

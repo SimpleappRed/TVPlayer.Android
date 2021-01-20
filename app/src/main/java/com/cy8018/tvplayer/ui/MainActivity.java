@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     // channel list
     public static List<ChannelData> mChannelList;
+    public static Boolean gTvIconOverlayVisible = true;
     public static int gTotalChannelCount = 0;
     private ChannelData mCurrentChannel;
     private int mCurrentChannelIndex;
@@ -119,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
     private View mainFrame, appTitleBar, nowPlayingBar, nowPlayingBall, mediaFrame, bufferInfoMediaFrame, controlOverlay;
     private TextView sourceInfoBar, sourceInfoMediaFrame, bufferPercentageMediaFrame, netSpeedBar, netSpeedBall, netSpeedOverlay, netSpeedMediaFrame, sourceInfoOverlay, channelNameOverlay, aspectRatioTextOverlay, channelNameBar, channelInfoBar, channelNameMediaFrame;
-    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, aspectRatioIconOverlay, favIconMediaFrame;
+    private ImageView countryFlagBar, favIconBar, channelLogoBar, mFullScreenIcon, favIconOverlay, aspectRatioIconOverlay, favIconMediaFrame, tvIconOverlay;
     protected GifImageView loadingPicMediaFrame, playButtonBar, playBtnBall, playButtonOverlay;
     protected CircleImageView channelLogoBall;
 
@@ -311,6 +312,14 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
 
 
         // Control Overlay
+        tvIconOverlay = findViewById(R.id.tv_icon_overlay);
+        if (gTvIconOverlayVisible) {
+            tvIconOverlay.setVisibility(View.VISIBLE);
+        }
+        else {
+            tvIconOverlay.setVisibility(View.GONE);
+        }
+
         playButtonOverlay = findViewById(R.id.play_button_overlay);
         channelNameOverlay = findViewById(R.id.channel_name_overlay);
         channelNameOverlay.setSelected(true);
@@ -1143,9 +1152,18 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         play(channel, source);
     }
 
+    private void hideTvIconOverlay() {
+        if (tvIconOverlay.getVisibility() == View.VISIBLE) {
+            tvIconOverlay.setVisibility(View.GONE);
+            gTvIconOverlayVisible = false;
+        }
+    }
+
     protected void play(String url) {
         Uri uri = Uri.parse(url);
         pausePlayer();
+
+        hideTvIconOverlay();
 
         // Prepare the player with the source.
         player.prepare(buildMediaSource(uri));

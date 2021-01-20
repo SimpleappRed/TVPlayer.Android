@@ -337,6 +337,14 @@
 
 
         </LinearLayout>
+        <ImageView
+            android:id="@+id/tv_icon_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="50dp"
+            android:layout_gravity="center"
+            android:src="@drawable/tv_logo_trans"
+            />
     </FrameLayout>
     <View
         android:id="@+id/listDivider"
